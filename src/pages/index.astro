@@ -51,6 +51,17 @@ const seriesTags = [
     desc: "Expert perspectives on diverse topics",
   },
 ];
+
+// Topic clusters for SEO Hub & Spoke architecture
+const topics = [
+  { tag: "laravel", title: "Laravel", emoji: "🔥" },
+  { tag: "php", title: "PHP", emoji: "🐘" },
+  { tag: "postgresql", title: "PostgreSQL", emoji: "🐘" },
+  { tag: "go", title: "Go", emoji: "🐹" },
+  { tag: "java", title: "Java & Spring", emoji: "☕" },
+  { tag: "devops-and-infrastructure", title: "DevOps", emoji: "⚙️" },
+  { tag: "productivity", title: "Productivity", emoji: "💡" },
+];
 ---
 
 <Layout>
@@ -116,6 +127,27 @@ const seriesTags = [
           ))
         }
       </ul>
+    <section
+      id="topics"
+      class:list={["pt-12 pb-6", "border-b border-border"]}
+    >
+      <h2 class="text-2xl font-semibold tracking-wide">🏷️ Topics</h2>
+      <p class="mt-2 mb-4 text-sm opacity-80">
+        Explore articles by core technology and subject areas.
+      </p>
+      <div class="flex flex-wrap gap-3">
+        {
+          topics.map(topic => (
+            <a
+              href={`/tags/${topic.tag}/`}
+              class="group flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm transition-all hover:border-accent hover:bg-accent/5 hover:text-accent font-medium"
+            >
+              <span>{topic.emoji}</span>
+              <span>{topic.title}</span>
+            </a>
+          ))
+        }
+      </div>
     </section>
 
     {
