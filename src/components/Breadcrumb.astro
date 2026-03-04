@@ -11,7 +11,7 @@ const breadcrumbList = currentUrlPath.split("/").slice(1);
 // if breadcrumb is Home > Posts > 1 <etc>
 // replace Posts with Posts (page number)
 if (breadcrumbList[0] === "posts") {
-  breadcrumbList.splice(0, 2, `Artikel (halaman ${breadcrumbList[1] || 1})`);
+  breadcrumbList.splice(0, 2, `Posts (page ${breadcrumbList[1] || 1})`);
 }
 
 // if breadcrumb is Home > Tags > [tag] > [page] <etc>
@@ -35,7 +35,7 @@ const breadcrumbSchema = {
     {
       "@type": "ListItem",
       position: 1,
-      name: "Beranda",
+      name: "Home",
       item: `${siteUrl}/`,
     },
     ...currentUrlPath
@@ -59,7 +59,7 @@ const breadcrumbSchema = {
     class="font-light [&>li]:inline [&>li:not(:last-child)>a]:hover:opacity-100"
   >
     <li>
-      <a href="/" class="opacity-80">Beranda</a>
+      <a href="/" class="opacity-80">Home</a>
       <span aria-hidden="true" class="opacity-80">&raquo;</span>
     </li>
     {

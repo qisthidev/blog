@@ -19,9 +19,9 @@ export const getStaticPaths = (async ({ paginate }) => {
 const { page } = Astro.props;
 ---
 
-<Layout title={`Artikel | ${SITE.title}`}>
+<Layout title={`Posts | ${SITE.title}`}>
   <Header />
-  <Main pageTitle="Artikel" pageDesc="Semua artikel yang telah saya posting.">
+  <Main pageTitle="Posts" pageDesc="All posts I have written.">
     <ul>
       {page.data.map(data => <Card {...data} />)}
     </ul>
@@ -29,8 +29,8 @@ const { page } = Astro.props;
 
   <ItemListSchema
     items={page.data}
-    pageTitle="Artikel"
-    pageDesc="Semua artikel yang telah saya posting."
+    pageTitle="Posts"
+    pageDesc="All posts I have written."
   />
 
   <Pagination {page} />

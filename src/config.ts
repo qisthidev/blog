@@ -1,23 +1,23 @@
 export const SITE = {
-  website: "https://astro-paper.pages.dev/", // replace this with your deployed domain
-  author: "Sat Naing",
-  profile: "https://satnaing.dev/",
-  desc: "Template blog Astro yang minimal, responsif, dan ramah SEO.",
-  title: "AstroPaper",
+  website: "https://qisthi.dev/",
+  author: "Qisthi Ramadhani",
+  profile: "https://qisthi.dev/",
+  desc: "Technical blog by Qisthi Ramadhani — deep dives into Laravel, PHP, Go, PostgreSQL, DevOps, and modern web development. Tutorials, performance optimization, and clean code practices.",
+  title: "Qisthi Ramadhani",
   ogImage: "astropaper-og.jpg",
   lightAndDarkMode: true,
-  postPerIndex: 4,
-  postPerPage: 4,
+  postPerIndex: 6,
+  postPerPage: 10,
   scheduledPostMargin: 15 * 60 * 1000, // 15 minutes
   showArchives: true,
-  showBackButton: true, // show back button in post detail
+  showBackButton: true,
   editPost: {
-    enabled: true,
-    text: "Sunting halaman",
-    url: "https://github.com/satnaing/astro-paper/edit/main/",
+    enabled: false,
+    text: "Edit this post",
+    url: "https://github.com/qisthidev/blog/edit/main/",
   },
   dynamicOgImage: true,
-  dir: "ltr", // "rtl" | "auto"
-  lang: "id", // html lang code. Set this empty and default will be "en"
-  timezone: "Asia/Jakarta", // Default global timezone (IANA format) https://en.wikipedia.org/wiki/List_of_tz_database_time_zones
+  dir: "ltr",
+  lang: "en",
+  timezone: "Asia/Jakarta",
 } as const;

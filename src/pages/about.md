@@ -1,37 +1,30 @@
 ---
 layout: ../layouts/AboutLayout.astro
-title: "Tentang"
+title: "About"
 ---
 
-AstroPaper adalah template blog yang minimal, mudah diakses, dan ramah SEO yang dibangun dengan [Astro](https://astro.build/) dan [Tailwind CSS](https://tailwindcss.com/).
+Hey there! I'm **Qisthi Ramadhani** (but you can call me Rama), a full-stack developer from Magetan, Indonesia. I currently work as an L5 Programmer at **PT Javan Cipta Solusi**, where I build and optimize web applications using Laravel, PostgreSQL, and modern PHP tooling.
 
-![Astro Paper](public/astropaper-og.jpg)
+## What I Write About
 
-AstroPaper menyediakan fondasi yang solid untuk blog, atau bahkan portfolio\_ dengan dukungan markdown lengkap, mode gelap bawaan, dan tata letak yang bersih yang berfungsi langsung dari awal.
+This blog is where I share deep-dive tutorials, performance optimization case studies, and practical guides on topics I'm passionate about:
 
-Artikel blog dalam template ini juga berfungsi sebagai panduan, dokumentasi, atau contoh artikel\_ menjadikan AstroPaper titik awal yang fleksibel untuk situs berbasis konten Anda berikutnya.
+- **Laravel & PHP** — Octane, Swoole, Eloquent optimization, clean architecture
+- **PostgreSQL** — Query optimization, indexing strategies, execution plans
+- **Go (Golang)** — Clean code principles, transitioning from Laravel to Go
+- **DevOps** — Docker, Alpine Linux, CI/CD pipelines, DigitalOcean deployments
+- **Java & Spring Boot** — For those exploring the JVM ecosystem
+- **Web Development** — JavaScript, modern tooling, and best practices
 
-## Fitur
+## My Philosophy
 
-AstroPaper hadir dengan serangkaian fitur berguna yang membuat penerbitan konten menjadi mudah dan efektif:
+I believe in writing **clean, intentional code** that others can live with. Whether it's eliminating N+1 queries, architecting microservices, or crafting readable test suites, I approach every problem with a craftsman's mindset.
 
-- Ramah SEO
-- Performa cepat
-- Mode terang & gelap
-- Sangat dapat disesuaikan
-- Artikel blog yang terorganisir
-- Responsif & mudah diakses
-- Pencarian statis dengan [PageFind](https://pagefind.app/)
-- Pembuatan gambar sosial otomatis
+> "The only way to go fast is to go well." — Robert C. Martin
 
-dan masih banyak lagi.
+## Connect With Me
 
-## Tunjukkan dukungan Anda
-
-Jika Anda menyukai [AstroPaper](https://github.com/satnaing/astro-paper), pertimbangkan untuk memberikan bintang ⭐️.
-
-Menemukan bug 🐛 atau memiliki perbaikan ✨ dalam pikiran? Jangan ragu untuk membuka [issue](https://github.com/satnaing/astro-paper/issues), mengirim [pull request](https://github.com/satnaing/astro-paper/pulls) atau memulai [diskusi](https://github.com/satnaing/astro-paper/discussions).
-
-Jika Anda merasa template ini bermanfaat, Anda juga dapat [mensponsori saya di GitHub](https://github.com/sponsors/satnaing) atau [membelikan saya kopi](https://buymeacoffee.com/satnaing) untuk menunjukkan dukungan Anda — setiap sen sangat berarti.
-
-Terima kasih! 🙏🏼
+- **Email:** [rama@qisthi.dev](mailto:rama@qisthi.dev)
+- **GitHub:** [@qisthidev](https://github.com/qisthidev)
+- **YouTube:** [@qisthidev](https://youtube.com/@qisthidev)
+- **X/Twitter:** [@ramageek](https://x.com/ramageek)

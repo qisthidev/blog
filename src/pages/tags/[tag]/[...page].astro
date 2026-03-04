@@ -37,7 +37,7 @@ const { page, tagName } = Astro.props;
   <Main
     pageTitle={[`Tag:`, `${tagName}`]}
     titleTransition={tag}
-    pageDesc={`Semua artikel dengan tag "${tagName}".`}
+    pageDesc={`All posts with tag "${tagName}".`}
   >
     <h1 slot="title" transition:name={tag}>{`Tag:${tag}`}</h1>
     <ul>
@@ -48,7 +48,7 @@ const { page, tagName } = Astro.props;
   <ItemListSchema
     items={page.data}
     pageTitle={`Tag: ${tagName}`}
-    pageDesc={`Semua artikel dengan tag "${tagName}".`}
+    pageDesc={`All posts with tag "${tagName}".`}
   />
 
   <Pagination {page} />
