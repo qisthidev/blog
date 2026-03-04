@@ -1,0 +1,52 @@
+---
+import { SITE } from "@/config";
+import { getPath } from "@/utils/getPath";
+import type { CollectionEntry } from "astro:content";
+
+type Props = {
+  items: CollectionEntry<"blog">[];
+  pageTitle: string;
+  pageDesc?: string;
+};
+
+const { items, pageTitle, pageDesc } = Astro.props;
+
+// Create ItemList structured data
+const itemListSchema = {
+  "@context": "https://schema.org",
+  "@type": "ItemList",
+  name: pageTitle,
+  description: pageDesc,
+  url: new URL(Astro.url.pathname, SITE.website).href,
+  numberOfItems: items.length,
+  itemListElement: items.map((item, index) => {
+    const postPath = getPath(item.id, item.filePath);
+    return {
+      "@type": "ListItem",
+      position: index + 1,
+      item: {
+        "@type": "BlogPosting",
+        "@id": new URL(postPath, SITE.website).href,
+        url: new URL(postPath, SITE.website).href,
+        headline: item.data.title,
+        description: item.data.description,
+        datePublished: item.data.pubDatetime.toISOString(),
+        ...(item.data.modDatetime && {
+          dateModified: item.data.modDatetime.toISOString(),
+        }),
+        author: {
+          "@type": "Person",
+          name: item.data.author || SITE.author,
+        },
+      },
+    };
+  }),
+};
+---
+
+<!-- ItemList Structured Data -->
+<script
+  type="application/ld+json"
+  is:inline
+  set:html={JSON.stringify(itemListSchema)}
+/>
