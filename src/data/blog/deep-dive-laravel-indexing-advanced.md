@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-14T00:00:00.000Z
 title: "Level Up Your Laravel Queries: Advanced Indexing with Index-Only and JSON"
-slug: deep-dive-laravel-indexing-advanced
 featured: false
 draft: false
 tags:

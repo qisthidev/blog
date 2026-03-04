@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-17T00:00:00.000Z
 title: "Taming Long Queries & Joins: Winning Strategies for Reports (Laravel + PostgreSQL Performance Part 4)"
-slug: laravel-postgres-4-long-queries-joins-reports
 featured: false
 draft: false
 tags:

@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-16T00:00:00.000Z
 title: "Short Queries, Massive Tables: Indexes That Make Laravel Fly (Laravel + PostgreSQL Performance Part 3)"
-slug: laravel-postgres-3-short-queries-indexes
 featured: false
 draft: false
 tags:

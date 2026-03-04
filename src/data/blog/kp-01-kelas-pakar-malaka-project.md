@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-28T00:00:00.000Z
 title: "Unlocking Indonesian Expertise: A Deep Dive into Malaka Project's 'Kelas Pakar'"
-slug: kp-01-kelas-pakar-malaka-project
 featured: false
 draft: false
 tags:

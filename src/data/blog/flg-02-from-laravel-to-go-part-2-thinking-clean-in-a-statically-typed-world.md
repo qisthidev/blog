@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-11-09T00:00:00.000Z
 title: "🧩 From Laravel to Go (Part 2): Thinking Clean in a Statically Typed World"
-slug: flg-02-from-laravel-to-go-part-2-thinking-clean-in-a-statically-typed-world
 featured: false
 draft: false
 tags:

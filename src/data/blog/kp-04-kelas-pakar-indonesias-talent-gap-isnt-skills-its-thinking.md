@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-09-11T00:00:00.000Z
 title: "Kelas Pakar: Indonesia’s Talent Gap Isn’t Skills—It’s Thinking"
-slug: kp-04-kelas-pakar-indonesias-talent-gap-isnt-skills-its-thinking
 featured: false
 draft: false
 tags:

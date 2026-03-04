@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-28T00:00:00.000Z
 title: "Learning Note: Java 21 Feature – Pattern Matching for Switch"
-slug: java-21-part-4-java-21-pattern-matching-switch
 featured: false
 draft: false
 tags:

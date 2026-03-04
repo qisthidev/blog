@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-09-11T00:00:00.000Z
 title: "Kelas Pakar: If Ghosts Are Real, Physics Needs a Rewrite"
-slug: kp-03-kelas-pakar-if-ghosts-are-real-physics-needs-a-rewrite
 featured: false
 draft: false
 tags:

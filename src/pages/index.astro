@@ -17,6 +17,40 @@ const posts = await getCollection("blog");
 const sortedPosts = getSortedPosts(posts);
 const featuredPosts = sortedPosts.filter(({ data }) => data.featured);
 const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
+
+// Series highlights - group posts by series tags
+const seriesTags = [
+  {
+    tag: "series-laravel-octane-mastery",
+    title: "🚀 Laravel Octane Mastery",
+    desc: "From zero to production with Swoole",
+  },
+  {
+    tag: "series-supercharging-laravel-with-postgresql-query-optimization",
+    title: "⚡ Laravel + PostgreSQL Optimization",
+    desc: "Query tuning, indexing, and performance",
+  },
+  {
+    tag: "series-from-laravel-to-go-writing-clean-craftsmanship-grade-code-in-golang",
+    title: "🔄 From Laravel to Go",
+    desc: "Clean code in a statically typed world",
+  },
+  {
+    tag: "series-spring-boot-for-laravel-developers",
+    title: "☕ Spring Boot for Laravel Devs",
+    desc: "JVM ecosystem for PHP developers",
+  },
+  {
+    tag: "series-deep-dive-into-laravel-database-indexing",
+    title: "🔍 Deep Dive: Laravel Indexing",
+    desc: "Database indexing strategies",
+  },
+  {
+    tag: "series-kelas-pakar",
+    title: "🎓 Kelas Pakar",
+    desc: "Expert perspectives on diverse topics",
+  },
+];
 ---
 
 <Layout>
@@ -48,16 +82,40 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
         to help you write cleaner, faster code.
       </p>
       {
-        // only display if at least one social link is enabled
         SOCIALS.length > 0 && (
           <div class="mt-4 flex max-sm:flex-col sm:items-center">
-            <div class="me-2 mb-1 whitespace-nowrap sm:mb-0">
-              Find me on:
-            </div>
+            <div class="me-2 mb-1 whitespace-nowrap sm:mb-0">Find me on:</div>
             <Socials />
           </div>
         )
       }
+    </section>
+
+    <section
+      id="series"
+      class:list={["pt-12 pb-6", "border-b border-border"]}
+    >
+      <h2 class="text-2xl font-semibold tracking-wide">📚 Series</h2>
+      <p class="mt-2 mb-4 text-sm opacity-80">
+        In-depth, multi-part tutorials covering topics from start to finish.
+      </p>
+      <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {
+          seriesTags.map(series => (
+            <li>
+              <a
+                href={`/tags/${series.tag}/`}
+                class="group flex flex-col rounded-lg border border-border p-4 transition-all hover:border-accent/50 hover:bg-accent/5"
+              >
+                <span class="font-semibold group-hover:text-accent">
+                  {series.title}
+                </span>
+                <span class="text-sm opacity-70">{series.desc}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
     </section>
 
     {
@@ -94,7 +152,7 @@ const recentPosts = sortedPosts.filter(({ data }) => !data.featured);
     }
 
     <div class="my-8 text-center">
-      <LinkButton href="/posts/">
+      <LinkButton href="/blog/">
         All Posts
         <IconArrowRight class="inline-block rtl:-rotate-180" />
       </LinkButton>

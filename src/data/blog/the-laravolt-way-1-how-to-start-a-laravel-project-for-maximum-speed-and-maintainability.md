@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-26T00:00:00.000Z
 title: "How to Start a Laravel Project for Maximum Speed & Maintainability?"
-slug: the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability
 featured: false
 draft: true
 tags:

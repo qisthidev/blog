@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-28T00:00:00.000Z
 title: "Setting Up Java Development in VSCode: Why I Recommend the Extension Pack for Java?"
-slug: java-21-part-2-setting-up-java-development-vscode
 featured: false
 draft: false
 tags:

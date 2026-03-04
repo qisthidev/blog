@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-31T00:00:00.000Z
 title: "From Laravel to Spring Boot 03: Building Your First REST API with Proper Error Handling"
-slug: msb-03-building-your-first-spring-boot-rest-api
 featured: false
 draft: false
 tags:
@@ -19,9 +18,9 @@ description: "Learn to build production-ready REST APIs with Spring Boot. Master
 
 Now that you have your development environment set up, it's time to build something real. In this article, we'll create a production-ready REST API that showcases Spring Boot's strengths: explicit error handling, automatic validation, and comprehensive testing.
 
-> **📚 Series Navigation:** This is Part 3 of the [Spring Boot for Laravel Developers](/posts/series/spring-boot-for-laravel-developers) series.
+> **📚 Series Navigation:** This is Part 3 of the [Spring Boot for Laravel Developers](/tags/series-spring-boot-for-laravel-developers) series.
 >
-> **Previous:** [Setting Up Your Development Environment](/posts/msb-02-setting-up-java-development-environment-sdkman-intellij)
+> **Previous:** [Setting Up Your Development Environment](/blog/msb-02-setting-up-java-development-environment-sdkman-intellij)
 
 We'll build a **Task Management API** that demonstrates core concepts every Laravel developer needs to understand when transitioning to Spring Boot.
 
@@ -878,6 +877,6 @@ You now have a solid foundation for building REST APIs with Spring Boot. The pat
 
 ---
 
-> **🚀 Ready to Continue?** The next article covers [Data Persistence with Spring Data JPA](/posts/msb-04-data-persistence-spring-data-jpa-postgresql) - where we'll build a robust data layer with PostgreSQL.
+> **🚀 Ready to Continue?** The next article covers [Data Persistence with Spring Data JPA](/blog/msb-04-data-persistence-spring-data-jpa-postgresql) - where we'll build a robust data layer with PostgreSQL.
 >
 > **💡 Practice Tip:** Try extending this API with user authentication, task categories, or due dates. The patterns you've learned here will scale to any complexity level!

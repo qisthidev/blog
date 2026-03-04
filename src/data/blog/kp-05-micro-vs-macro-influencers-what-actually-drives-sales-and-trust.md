@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-09-12T00:00:00.000Z
 title: "Kelas Pakar: Micro vs. Macro Influencers — What Actually Drives Sales and Trust?"
-slug: kp-05-micro-vs-macro-influencers-what-actually-drives-sales-and-trust
 featured: false
 draft: false
 tags:

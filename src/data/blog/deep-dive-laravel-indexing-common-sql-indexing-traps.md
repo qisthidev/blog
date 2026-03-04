@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-13T00:00:00.000Z
 title: "Navigating Common SQL Performance Traps: !=, NULL, LIKE, and GROUP BY"
-slug: deep-dive-laravel-indexing-common-sql-indexing-traps
 featured: false
 draft: false
 tags:

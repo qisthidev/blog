@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-09-13T00:00:00.000Z
 title: "Kelas Pakar: Can Democracy Survive When Voters Stop Trusting Parties?"
-slug: kp-08-can-democracy-survive-when-voters-stop-trusting-parties
 featured: false
 draft: false
 tags:

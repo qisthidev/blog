@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-18T00:00:00.000Z
 title: "Laravel Octane 05: Production Deployment & Best Practices for High-Performance Laravel"
-slug: hp-octane-swoole-05-production-deployment-best-practices
 featured: false
 draft: false
 tags:
@@ -20,12 +19,12 @@ description: "Master the final steps of deploying your high-performance Laravel 
 
 Welcome to the final article in our **Laravel Octane with Swoole** series! Over the past four articles, we've built a solid foundation:
 
-> **📚 Series Navigation:** This is Part 5 (Final) of the [Laravel Octane Mastery](/posts/laravel-octane-series) series.
+> **📚 Series Navigation:** This is Part 5 (Final) of the [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series.
 
-- [Part 1](/posts/hp-octane-swole-01-laravel-octane-swoole-introduction): Understanding Laravel Octane and the stateful paradigm
-- [Part 2](/posts/hp-octane-swole-02-laravel-octane-swoole-setup): Setting up our development environment with Sail
-- [Part 3](/posts/hp-octane-swole-03-concurrency-asynchronous-workflows): Mastering concurrency and asynchronous workflows
-- [Part 4](/posts/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance): Advanced caching and performance monitoring
+- [Part 1](/blog/hp-octane-swole-01-laravel-octane-swoole-introduction): Understanding Laravel Octane and the stateful paradigm
+- [Part 2](/blog/hp-octane-swole-02-laravel-octane-swoole-setup): Setting up our development environment with Sail
+- [Part 3](/blog/hp-octane-swole-03-concurrency-asynchronous-workflows): Mastering concurrency and asynchronous workflows
+- [Part 4](/blog/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance): Advanced caching and performance monitoring
 
 Now, it's time to take the final step: deploying our high-performance application to a production environment that can handle real-world traffic.
 
@@ -328,7 +327,7 @@ Here's how it works:
 - **Nginx (The Front Door):** Nginx faces the public internet and handles incoming traffic. It terminates SSL (HTTPS) and serves **static assets** (CSS, JavaScript, images, etc.) directly from the filesystem—this is incredibly fast and doesn't require PHP at all.
 - **Octane (The Engine Room):** The Octane server runs as a separate process, listening on an internal port (like 8000). It receives only the dynamic requests that Nginx forwards to it. This allows Octane to focus exclusively on what it does best: executing your Laravel application logic at supersonic speeds.
 
-> For detail infrastructure setup, you can refer to the [Laravel Octane Infrastructure Setup: From Zero to Production on DigitalOcean](/posts/04-laravel-octane-infrastructure-setup-digitalocean).
+> For detail infrastructure setup, you can refer to the [Laravel Octane Infrastructure Setup: From Zero to Production on DigitalOcean](/blog/laravel-octane-infrastructure-setup-digitalocean).
 
 ### Production Nginx Configuration
 
@@ -875,7 +874,7 @@ Congratulations! You've completed the entire **Laravel Octane Mastery** series. 
 
 > **🚀 Series Complete!** This concludes the [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series. You now have all the knowledge needed to build lightning-fast Laravel applications.
 >
-> **Want More?** Check out our other series on [DevOps & Infrastructure](/posts/category/devops-infrastructure) or explore [AI & Productivity](/posts/category/ai-productivity) techniques.
+> **Want More?** Check out our other series on [DevOps & Infrastructure](/tags/devops-and-infrastructure) or explore [AI & Productivity](/tags/productivity) techniques.
 
 The journey doesn't end here. The skills you've learned—understanding stateful applications, optimizing database queries, implementing monitoring, and deploying with confidence—will serve you well in any high-performance web development project.
 

@@ -3,7 +3,7 @@ layout: ../layouts/AboutLayout.astro
 title: "About"
 ---
 
-Hey there! I'm **Qisthi Ramadhani** (but you can call me Rama), a full-stack developer from Magetan, Indonesia. I currently work as an L5 Programmer at **PT Javan Cipta Solusi**, where I build and optimize web applications using Laravel, PostgreSQL, and modern PHP tooling.
+Hey there! I'm **Qisthi Ramadhani** (but you can call me Rama), a full-stack developer from Magetan, Indonesia. I currently work as an L6 Programmer at **PT Javan Cipta Solusi**, where I build and optimize web applications using Laravel, PostgreSQL, and modern PHP tooling.
 
 ## What I Write About
 

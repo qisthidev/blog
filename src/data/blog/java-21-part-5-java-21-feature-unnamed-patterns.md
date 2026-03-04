@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-28T00:00:00.000Z
 title: "Learning Note: Java 21 Feature – Unnamed Patterns and Variables"
-slug: java-21-part-5-java-21-feature-unnamed-patterns
 featured: false
 draft: false
 tags:

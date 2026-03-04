@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-29T00:00:00.000Z
 title: "From Laravel to Spring Boot 01: The Fundamental Mindset Shift - Adapt or Die"
-slug: msb-01-from-laravel-to-spring-boot-the-fundamental-mindset-shift
 featured: false
 draft: false
 tags:
@@ -19,9 +18,9 @@ description: "The essential mental transitions every Laravel developer must make
 
 The PHP ecosystem has been incredibly good to many of us. Laravel, in particular, has democratized web development in ways that seemed impossible a decade ago. But here's the uncomfortable truth that many senior PHP developers are starting to face: **the market is evolving, and standing still is moving backward**.
 
-> **📚 Series Navigation:** This is Part 1 of the [Spring Boot for Laravel Developers](/posts/series/spring-boot-for-laravel-developers) series.
+> **📚 Series Navigation:** This is Part 1 of the [Spring Boot for Laravel Developers](/tags/series-spring-boot-for-laravel-developers) series.
 >
-> **Next:** [Setting Up Your Java Development Environment with SDKMAN and IntelliJ](/posts/msb-02-setting-up-java-development-environment-sdkman-intellij)
+> **Next:** [Setting Up Your Java Development Environment with SDKMAN and IntelliJ](/blog/msb-02-setting-up-java-development-environment-sdkman-intellij)
 
 If you're a Laravel developer reading this, you're likely in one of three camps:
 
@@ -287,6 +286,6 @@ Ready to adapt? Let's build something great together.
 
 ---
 
-> **🚀 Ready to Continue?** The next article covers [Setting Up Your Java Development Environment](/posts/msb-02-setting-up-java-development-environment-sdkman-intellij) - everything you need to start building Spring Boot applications professionally.
+> **🚀 Ready to Continue?** The next article covers [Setting Up Your Java Development Environment](/blog/msb-02-setting-up-java-development-environment-sdkman-intellij) - everything you need to start building Spring Boot applications professionally.
 >
 > **💡 Questions?** Drop them in the comments below. I read every one and often incorporate feedback into upcoming articles.

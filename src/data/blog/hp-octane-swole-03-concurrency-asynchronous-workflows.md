@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-16T00:00:00.000Z
 title: "Laravel Octane 03: Concurrency and Asynchronous Workflows with Swoole"
-slug: hp-octane-swole-03-concurrency-asynchronous-workflows
 featured: false
 draft: false
 tags:
@@ -17,11 +16,11 @@ tags:
 description: "Explore the power of concurrency and asynchronous workflows in Laravel Octane with Swoole. Learn how to create a high-performance application that handles multiple tasks simultaneously, improving responsiveness and performance."
 ---
 
-In the last article, we successfully set up a high-performance [development environment with Laravel Octane and Sail](/posts/hp-octane-swole-02-laravel-octane-swoole-setup). Now that our engine is warmed up, it's time to explore some of the most transformative features that Swoole brings to the table: concurrency and asynchronous workflows.
+In the last article, we successfully set up a high-performance [development environment with Laravel Octane and Sail](/blog/hp-octane-swole-02-laravel-octane-swoole-setup). Now that our engine is warmed up, it's time to explore some of the most transformative features that Swoole brings to the table: concurrency and asynchronous workflows.
 
 > **📚 Series Navigation:** This is Part 3 of the [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series.
 >
-> **Next:** [Advanced Caching and Database Optimization](/posts/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance)
+> **Next:** [Advanced Caching and Database Optimization](/blog/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance)
 
 These concepts might sound complex, but they are the key to unlocking a new level of performance and responsiveness in your applications. Let's break them down.
 
@@ -384,7 +383,7 @@ foreach (Event::lazy()->chunk(1000) as $chunk) {
 
 We've covered some serious ground, moving from simple speed boosts to fundamentally new ways of structuring our application's logic. We've seen how to use Octane::concurrently() for instant in-request performance gains and how to use queues and batching for robust, scalable background processing.
 
-> **Continue the Journey:** Ready to master the most advanced optimization techniques? In [Part 4: Advanced Caching and Database Optimization](/posts/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance), we'll explore Swoole's powerful caching features and essential database optimizations for production-ready applications.
+> **Continue the Journey:** Ready to master the most advanced optimization techniques? In [Part 4: Advanced Caching and Database Optimization](/blog/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance), we'll explore Swoole's powerful caching features and essential database optimizations for production-ready applications.
 
 In the next article, we'll dive into another powerful Swoole-specific feature: the **Octane Cache**. We'll also cover essential database optimizations and how to monitor our new high-performance application.
 

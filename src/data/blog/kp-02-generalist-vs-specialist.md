@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-28T00:00:00.000Z
 title: "Kelas Pakar: Generalist vs. Specialist: Who Wins in Today's Job Market?"
-slug: kp-02-generalist-vs-specialist
 featured: false
 draft: false
 tags:

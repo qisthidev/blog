@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-12T00:00:00.000Z
 title: "Unlocking Performance: A Pragmatic Guide to Laravel Database Indexing"
-slug: deep-dive-laravel-indexing-unlocking-performance-laravel-database-indexing
 featured: false
 draft: false
 tags:

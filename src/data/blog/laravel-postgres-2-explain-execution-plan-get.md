@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-15T00:00:00.000Z
 title: "What Happens When You Run ->get()? Reading PostgreSQL Execution Plans (Laravel + PostgreSQL Performance Part 2)"
-slug: laravel-postgres-2-explain-execution-plan-get
 featured: false
 draft: false
 tags:

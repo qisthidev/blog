@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-15T00:00:00.000Z
 title: "Database Indexing Pitfalls: The Boolean Flag Trap, We Should Know"
-slug: deep-dive-laravel-indexing-pitfalls-boolean-trap
 featured: false
 draft: false
 tags:

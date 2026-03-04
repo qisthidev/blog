@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-09-12T00:00:00.000Z
 title: "Kelas Pakar: Why Activists Need Math — Turning Opinions into Impact"
-slug: kp-06-why-activists-need-math
 featured: false
 draft: false
 tags:

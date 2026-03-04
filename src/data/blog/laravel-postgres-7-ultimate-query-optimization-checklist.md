@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-20T00:00:00.000Z
 title: "The Ultimate Laravel + PostgreSQL Query Optimization Checklist (Part 7)"
-slug: laravel-postgres-7-ultimate-query-optimization-checklist
 featured: false
 draft: false
 tags:

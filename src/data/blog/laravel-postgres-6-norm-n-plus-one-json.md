@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-19T00:00:00.000Z
 title: "Solving N+1 for Good in Laravel: The NORM JSON Function Pattern (Performance Part 6)"
-slug: laravel-postgres-6-norm-n-plus-one-json
 featured: false
 draft: false
 tags:

@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-28T00:00:00.000Z
 title: "Learning Note: Java 21 Feature – Unnamed Classes and Instance Main Methods (Preview)"
-slug: java-21-part-3-java-21-unnamed-classes
 featured: false
 draft: false
 tags:

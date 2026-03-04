@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-11-08T00:00:00.000Z
 title: "🧠 From Laravel to Go (Part 1): Why Go Appeals to a Laravel Developer"
-slug: flg-01-from-laravel-to-go-01-why-go-appeals-to-a-laravel-developer
 featured: false
 draft: false
 tags:
@@ -18,9 +17,9 @@ description: "Discover why Go (Golang) is a natural next step for Laravel develo
 
 If you’ve been building web apps in Laravel for a while, you know the feeling — you spin up a new project, run a few Artisan commands, and within minutes you’ve got authentication, routing, and migrations ready to go. Laravel gives us **a beautiful developer experience** — expressive syntax, powerful abstractions, and conventions that let us move fast.
 
-> **📚 Series Navigation:** This is Part 1 of the [From Laravel to Go: Writing Clean, Craftsmanship-Grade Code in Golang](/posts/series/from-laravel-to-go-writing-clean-craftsmanship-grade-code-in-golang) series.
+> **📚 Series Navigation:** This is Part 1 of the [From Laravel to Go: Writing Clean, Craftsmanship-Grade Code in Golang](/tags/series-from-laravel-to-go-writing-clean-craftsmanship-grade-code-in-golang) series.
 >
-> **Next:** [Thinking Clean in a Statically Typed World](/posts/flg-02-thinking-clean-in-a-statically-typed-world)
+> **Next:** [Thinking Clean in a Statically Typed World](/blog/flg-02-from-laravel-to-go-part-2-thinking-clean-in-a-statically-typed-world)
 
 But as your applications grow, maybe you’ve started to feel some friction:
 
@@ -236,4 +235,4 @@ In Go, “Clean Code” isn’t a guideline — it’s a constraint. The languag
 Learning Go isn’t about leaving Laravel behind — it’s about sharpening your craftsmanship.
 Laravel taught us how to express ideas beautifully. Go teaches us how to express them *cleanly*.
 
-In the next part of this series, we’ll dive into how [**Go’s static typing system**](/posts/flg-02-from-laravel-to-go-part-2-thinking-clean-in-a-statically-typed-world) helps us write cleaner, safer code — and how to think like a Go developer without losing your Laravel intuition.
+In the next part of this series, we’ll dive into how [**Go’s static typing system**](/blog/flg-02-from-laravel-to-go-part-2-thinking-clean-in-a-statically-typed-world) helps us write cleaner, safer code — and how to think like a Go developer without losing your Laravel intuition.

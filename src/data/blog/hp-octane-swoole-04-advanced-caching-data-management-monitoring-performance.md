@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-17T00:00:00.000Z
 title: "Laravel Octane 04: Advanced Caching, Database Optimization, and Monitoring with Swoole"
-slug: hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance
 featured: false
 draft: false
 tags:
@@ -18,11 +17,11 @@ tags:
 description: "In this article, we explore advanced caching strategies with Laravel Octane, database optimization techniques, and monitoring tools to ensure your high-performance Laravel application runs smoothly in production."
 ---
 
-So far in our series, we've [set up a high-performance environment](/posts/hp-octane-swole-02-laravel-octane-swoole-setup) with Laravel Octane and Swoole, and we've [explored the power of concurrency](/posts/hp-octane-swole-03-concurrency-asynchronous-workflows) to run tasks in parallel. These are huge steps, but to build a truly robust and scalable application, we need to master two more areas: advanced data management and observability.
+So far in our series, we've [set up a high-performance environment](/blog/hp-octane-swole-02-laravel-octane-swoole-setup) with Laravel Octane and Swoole, and we've [explored the power of concurrency](/blog/hp-octane-swole-03-concurrency-asynchronous-workflows) to run tasks in parallel. These are huge steps, but to build a truly robust and scalable application, we need to master two more areas: advanced data management and observability.
 
 > **📚 Series Navigation:** This is Part 4 of the [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series.
 >
-> Next up: [Production Deployment and Best Practices](/posts/hp-octane-swoole-05-production-deployment-best-practices).
+> Next up: [Production Deployment and Best Practices](/blog/hp-octane-swoole-05-production-deployment-best-practices).
 
 In this article, we'll cover three critical topics:
 
@@ -890,7 +889,7 @@ Happy coding, and may your applications be fast and your databases be optimized!
 
 We've now mastered the core techniques for building high-performance Laravel applications: Octane caching, database optimization, and monitoring. Your application is blazing fast and equipped with the tools to diagnose any performance issues.
 
-> **Complete the Journey:** Ready for the final step? In [Part 5: Production Deployment and Best Practices](/posts/hp-octane-swoole-05-production-deployment-best-practices), we'll cover everything you need to deploy your high-performance application to production with Nginx, Supervisor, and essential optimizations.
+> **Complete the Journey:** Ready for the final step? In [Part 5: Production Deployment and Best Practices](/blog/hp-octane-swoole-05-production-deployment-best-practices), we'll cover everything you need to deploy your high-performance application to production with Nginx, Supervisor, and essential optimizations.
 
 In our final article of this series, we'll walk through setting up a production-ready environment, managing Octane processes, and applying the best practices that separate hobby projects from enterprise-grade applications.
 

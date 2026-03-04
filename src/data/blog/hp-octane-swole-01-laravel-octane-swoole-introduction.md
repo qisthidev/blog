@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-14T00:00:00.000Z
 title: "Laravel Octane 01: Unlocking Supersonic Speed: An Introduction to Swoole"
-slug: hp-octane-swole-01-laravel-octane-swoole-introduction
 featured: false
 draft: false
 tags:
@@ -20,7 +19,7 @@ As a Full Stack Developer, I'm constantly searching for ways to build faster, mo
 
 > **📚 Series Navigation:** This is Part 1 of the [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series.
 >
-> Next up: [Setting Up Your High-Performance Environment with Sail](/posts/hp-octane-swole-02-laravel-octane-swoole-setup).
+> Next up: [Setting Up Your High-Performance Environment with Sail](/blog/hp-octane-swole-02-laravel-octane-swoole-setup).
 
 But what exactly is Octane, and how does it achieve this? Is it just another package, or does it represent a fundamental shift in how we think about building Laravel apps?
 
@@ -94,13 +93,13 @@ Don't let this scare you! The key is awareness. Octane provides tools to manage 
 
 We've covered the ***what*** and ***why*** of Laravel Octane. We now understand that it's not just a performance boost but a shift to a more powerful, stateful application architecture powered by servers like Swoole.
 
-In the next article, we'll get our hands dirty and walk through [setting up a high-performance local development environment](/posts/hp-octane-swole-02-laravel-octane-swoole-setup) for Octane and Swoole using Laravel Sail. Stay tuned!
+In the next article, we'll get our hands dirty and walk through [setting up a high-performance local development environment](/blog/hp-octane-swole-02-laravel-octane-swoole-setup) for Octane and Swoole using Laravel Sail. Stay tuned!
 
 ## What's Next?
 
 Now that you understand the fundamentals of Laravel Octane and Swoole, you're ready to get your hands dirty with actual implementation. In the next part of this series, we'll walk through setting up a complete development environment with Laravel Sail and Octane.
 
-> **Continue the Journey:** Ready to start building? Check out [Part 2: Setting Up Your High-Performance Environment with Sail](/posts/hp-octane-swole-02-laravel-octane-swoole-setup) where we'll get Octane running in your development environment.
+> **Continue the Journey:** Ready to start building? Check out [Part 2: Setting Up Your High-Performance Environment with Sail](/blog/hp-octane-swole-02-laravel-octane-swoole-setup) where we'll get Octane running in your development environment.
 
 You'll learn how to configure your environment, install dependencies, and see Octane in action with real performance comparisons. We'll also cover common setup issues and how to troubleshoot them.
 

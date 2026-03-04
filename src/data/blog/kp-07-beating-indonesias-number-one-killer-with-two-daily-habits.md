@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-09-13T00:00:00.000Z
 title: "Kelas Pakar: Beating Indonesia’s #1 Killer with Two Daily Habits"
-slug: kp-07-beating-indonesias-number-one-killer-with-two-daily-habits
 featured: false
 draft: false
 tags:

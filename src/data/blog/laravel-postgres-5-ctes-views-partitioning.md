@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-18T00:00:00.000Z
 title: "Architecting Complexity: CTEs, Views, and Partitioning in Laravel (Performance Part 5)"
-slug: laravel-postgres-5-ctes-views-partitioning
 featured: false
 draft: false
 tags:

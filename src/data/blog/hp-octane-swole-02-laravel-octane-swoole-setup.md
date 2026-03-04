@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-15T00:00:00.000Z
 title: "Laravel Octane 02: Setting Up Your High-Performance Environment with Sail"
-slug: hp-octane-swole-02-laravel-octane-swoole-setup
 featured: false
 draft: false
 tags:
@@ -17,11 +16,11 @@ tags:
 description: "Learn how to set up a high-performance Laravel Octane environment using Sail and Swoole. This guide walks you through the installation process, configuration, and best practices for development."
 ---
 
-In our last article, we [explored the ***what*** and ***why*** of Laravel Octane](/posts/hp-octane-swole-01-laravel-octane-swoole-introduction), understanding how it shifts our applications to a powerful, stateful model with servers like Swoole. Now, it's time to roll up our sleeves and build our high-performance development environment.
+In our last article, we [explored the ***what*** and ***why*** of Laravel Octane](/blog/hp-octane-swole-01-laravel-octane-swoole-introduction), understanding how it shifts our applications to a powerful, stateful model with servers like Swoole. Now, it's time to roll up our sleeves and build our high-performance development environment.
 
 > **📚 Series Navigation:** This is Part 3 of the [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series.
 >
-> **Next:** [Advanced Caching and Database Optimization](/posts/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance)
+> **Next:** [Advanced Caching and Database Optimization](/blog/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance)
 
 One of the initial hurdles when working with tools like Swoole can be the setup process. Swoole is a PHP extension written in C, and installing it can sometimes be complex, requiring compilation and specific system dependencies. This is where Laravel Sail comes in—a tool designed to make our lives as developers much, much easier.
 
@@ -180,13 +179,13 @@ If you ever need to reload the workers manually, you can use the `octane:reload`
 
 We've successfully built a robust, containerized development environment using Laravel Sail, Octane, and Swoole. We're now perfectly positioned to start exploring the advanced features that this stack provides.
 
-In the next article, we'll [dive into one of the most powerful capabilities unlocked by Swoole](/posts/hp-octane-swole-03-concurrency-asynchronous-workflows): **concurrency**. We'll learn how to use Octane::concurrently() to execute multiple tasks in parallel and dramatically speed up I/O-bound operations like database queries and API calls.
+In the next article, we'll [dive into one of the most powerful capabilities unlocked by Swoole](/blog/hp-octane-swole-03-concurrency-asynchronous-workflows): **concurrency**. We'll learn how to use Octane::concurrently() to execute multiple tasks in parallel and dramatically speed up I/O-bound operations like database queries and API calls.
 
 ## What's Next?
 
 Congratulations! You now have a complete Laravel Octane development environment running with Swoole. You've seen firsthand how Octane can dramatically improve your application's performance.
 
-> **Continue the Journey:** Ready to unlock the true power of Swoole? In [Part 3: Concurrency and Asynchronous Workflows](/posts/hp-octane-swole-03-concurrency-asynchronous-workflows), we'll explore how to handle multiple tasks simultaneously and build truly responsive applications.
+> **Continue the Journey:** Ready to unlock the true power of Swoole? In [Part 3: Concurrency and Asynchronous Workflows](/blog/hp-octane-swole-03-concurrency-asynchronous-workflows), we'll explore how to handle multiple tasks simultaneously and build truly responsive applications.
 
 In our next article, we'll dive into the advanced features that make Swoole special: concurrent task execution, interval ticks, and asynchronous workflows. We'll build a practical example that showcases these capabilities in action.
 

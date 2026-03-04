@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-27T00:00:00.000Z
 title: "Building a Laravel News Portal with Laravolt: The Fastest CRUD Generation"
-slug: the-laravolt-way-2-building-a-laravel-news-portal-with-laravolt-the-fastest-crud-generation
 featured: false
 draft: true
 tags:
@@ -14,11 +13,11 @@ tags:
 description: "Learn how to leverage Laravolt's Thunderclap to generate production-ready CRUD interfaces in minutes, not hours. This article demonstrates the power of intelligent code generation for building a Laravel news portal with enterprise-grade quality standards."
 ---
 
-In the [previous article](/posts/_the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability), we built a rock-solid foundation for our news portal with enterprise-grade quality standards. We established models with ULIDs, comprehensive test coverage, and PHPStan Level 8 compliance. Now comes the exciting part—seeing the real payoff of the Laravolt way.
+In the [previous article](/blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability), we built a rock-solid foundation for our news portal with enterprise-grade quality standards. We established models with ULIDs, comprehensive test coverage, and PHPStan Level 8 compliance. Now comes the exciting part—seeing the real payoff of the Laravolt way.
 
 Building CRUD (Create, Read, Update, Delete) interfaces is one of the most time-consuming, repetitive tasks in web development. The traditional Laravel approach requires creating controllers with seven methods, writing routes, building multiple Blade views, implementing validation, setting up tests, and ensuring everything works together correctly. For a simple resource like topics, this typically takes 3-4 hours of careful, methodical work.
 
-As the primary maintainer of Laravolt, I've designed our tools to eliminate this bottleneck entirely. In this article, I'll show you how to leverage **Thunderclap**—Laravolt's intelligent code generation engine—to create a complete, production-ready admin interface in under 5 minutes. This isn't just scaffolding; we're generating real, inspectable, maintainable code that inherits all the quality standards we established in [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/posts/_the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability).
+As the primary maintainer of Laravolt, I've designed our tools to eliminate this bottleneck entirely. In this article, I'll show you how to leverage **Thunderclap**—Laravolt's intelligent code generation engine—to create a complete, production-ready admin interface in under 5 minutes. This isn't just scaffolding; we're generating real, inspectable, maintainable code that inherits all the quality standards we established in [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability).
 
 By the end of this article, you'll have fully functional CRUD interfaces for both Topics and Posts, complete with professional UI components, comprehensive test coverage, and enterprise-grade architecture—all generated automatically.
 
@@ -181,7 +180,7 @@ Next steps:
 **Understanding the Flags:**
 
 - `--table=topics` - Tells Thunderclap which database table to analyze
-- `--use-existing-models` - Preserves our existing models with their ULIDs, relationships, and type annotations from [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/posts/_the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability)
+- `--use-existing-models` - Preserves our existing models with their ULIDs, relationships, and type annotations from [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability)
 
 **What Happens During Generation:**
 
@@ -222,7 +221,7 @@ modules/Topic/
     └── web.php
 ```
 
-> **Note:** Since we used the `--use-existing-models` flag, Thunderclap will utilize your existing models in `app/Models/Topic.php` rather than creating new ones. This preserves all the ULID configuration, relationships, and type annotations we established in [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/posts/_the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability).
+> **Note:** Since we used the `--use-existing-models` flag, Thunderclap will utilize your existing models in `app/Models/Topic.php` rather than creating new ones. This preserves all the ULID configuration, relationships, and type annotations we established in [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability).
 
 Each generated file is intelligently crafted based on our database schema and existing model:
 
@@ -387,7 +386,7 @@ This will run:
 - **PHPStan Level 8** for static analysis (now including modules)
 - **PHPUnit** for comprehensive testing
 
-The generated modules will pass all quality checks, maintaining the high standards we established in [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/posts/_the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability).
+The generated modules will pass all quality checks, maintaining the high standards we established in [Article 1: How to Start a Laravel Project for Maximum Speed & Maintainability?](/blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability).
 
 ### Witnessing Enterprise-Grade Quality
 

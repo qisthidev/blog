@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-28T00:00:00.000Z
 title: "Installing Java with SDKMAN! A Step-by-Step Learning Note"
-slug: java-21-part-1-installing-java-sdkman
 featured: false
 draft: false
 tags:

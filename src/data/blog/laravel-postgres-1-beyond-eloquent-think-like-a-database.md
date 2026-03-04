@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-08-14T00:00:00.000Z
 title: "Beyond Eloquent: Think Like a Database (Laravel + PostgreSQL Performance Part 1)"
-slug: laravel-postgres-1-beyond-eloquent-think-like-a-database
 featured: false
 draft: false
 tags:

@@ -2,7 +2,6 @@
 author: Qisthi Ramadhani
 pubDatetime: 2025-07-30T00:00:00.000Z
 title: "From Laravel to Spring Boot 02: Setting Up Your Java Development Environment with SDKMAN, IntelliJ, and VSCode"
-slug: msb-02-setting-up-java-development-environment-sdkman-intellij
 featured: false
 draft: false
 tags:
@@ -13,11 +12,11 @@ description: "A practical guide to setting up a professional Java development en
 
 If you're coming from the Laravel world, you're probably used to a straightforward setup: install PHP, install Composer, run `composer install`, and you're coding. The Java ecosystem requires a bit more initial setup, but the payoff is a more robust development environment that scales from small projects to enterprise applications.
 
-> **📚 Series Navigation:** This is Part 2 of the [Spring Boot for Laravel Developers](/posts/series/spring-boot-for-laravel-developers) series.
+> **📚 Series Navigation:** This is Part 2 of the [Spring Boot for Laravel Developers](/tags/series-spring-boot-for-laravel-developers) series.
 >
-> **Previous:** [The Fundamental Mindset Shift](/posts/msb-01-from-laravel-to-spring-boot-the-fundamental-mindset-shift)
+> **Previous:** [The Fundamental Mindset Shift](/blog/msb-01-from-laravel-to-spring-boot-the-fundamental-mindset-shift)
 >
-> **Next:** [Building Your First REST API](/posts/msb-03-building-your-first-spring-boot-rest-api)
+> **Next:** [Building Your First REST API](/blog/msb-03-building-your-first-spring-boot-rest-api)
 
 In this article, we'll set up a professional Java development environment that will serve you throughout this series and beyond. By the end, you'll have:
 
@@ -126,7 +125,7 @@ As a Laravel developer, you're likely familiar with VSCode. The good news is tha
 
 If you're already comfortable with VSCode and want to stick with a familiar environment, this is an excellent choice. VSCode's Java support has matured significantly and provides most features you'll need for Spring Boot development.
 
-> **💡 Related Reading:** For a detailed guide on VSCode Java setup, check out my previous article: [Setting Up Java Development in VSCode: Why I Recommend the Extension Pack for Java](/posts/java-21-part-2-setting-up-java-development-vscode). This Spring Boot-focused guide builds upon those foundations.
+> **💡 Related Reading:** For a detailed guide on VSCode Java setup, check out my previous article: [Setting Up Java Development in VSCode: Why I Recommend the Extension Pack for Java](/blog/java-21-part-2-setting-up-java-development-vscode). This Spring Boot-focused guide builds upon those foundations.
 
 ### Installing the Extension Pack for Java
 
@@ -514,6 +513,6 @@ Ready to build your first real Spring Boot application? Let's continue the journ
 
 ---
 
-> **🚀 Ready to Continue?** The next article covers [Building Your First REST API](/posts/msb-03-building-your-first-spring-boot-rest-api) - where we'll create a production-ready API with proper error handling and testing.
+> **🚀 Ready to Continue?** The next article covers [Building Your First REST API](/blog/msb-03-building-your-first-spring-boot-rest-api) - where we'll create a production-ready API with proper error handling and testing.
 >
 > **💡 Tip:** Keep your chosen IDE open and experiment with the code examples. The best way to learn Spring Boot is by writing it! Both VSCode and IntelliJ offer excellent debugging and testing capabilities for Spring Boot development.
