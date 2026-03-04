@@ -20,4 +20,13 @@ export const SITE = {
   dir: "ltr",
   lang: "en",
   timezone: "Asia/Jakarta",
+  umami: {
+    websiteId: "", // e.g., "12345678-abcd-1234-abcd-1234567890ab"
+    url: "https://cloud.umami.is/script.js",
+  },
+  plausible: {
+    domain: "", // e.g., "qisthi.dev"
+    url: "https://plausible.io/js/script.js",
+  },
+  googleAnalyticsId: "", // e.g., "G-XXXXXXXXXX"
 } as const;

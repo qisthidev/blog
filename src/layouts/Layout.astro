@@ -16,6 +16,8 @@ type Props = {
   modDatetime?: Date | null;
   scrollSmooth?: boolean;
   tags?: string[];
+  lang?: string;
+  faqs?: { question: string; answer: string }[];
 };
 
 const {
@@ -29,6 +31,8 @@ const {
   modDatetime,
   scrollSmooth = false,
   tags,
+  lang,
+  faqs,
 } = Astro.props;
 
 const socialImageURL = new URL(ogImage, Astro.url);
@@ -47,7 +51,7 @@ const websiteSchema = {
   name: SITE.title,
   description: SITE.desc,
   url: SITE.website,
-  inLanguage: SITE.lang || "en",
+  inLanguage: lang || SITE.lang || "en",
   ...(Astro.url.pathname === "/" && {
     potentialAction: {
       "@type": "SearchAction",
@@ -96,22 +100,42 @@ const blogPostSchema = isBlogPost
         "@id": canonicalURLString,
       },
       url: canonicalURLString,
-      inLanguage: SITE.lang || "en",
+      inLanguage: lang || SITE.lang || "en",
       ...(tags && tags.length > 0 && { keywords: tags.join(", ") }),
     }
   : null;
 
+// FAQ schema
+const faqSchema =
+  faqs && faqs.length > 0
+    ? {
+        "@context": "https://schema.org",
+        "@type": "FAQPage",
+        mainEntity: faqs.map(faq => ({
+          "@type": "Question",
+          name: faq.question,
+          acceptedAnswer: {
+            "@type": "Answer",
+            text: faq.answer,
+          },
+        })),
+      }
+    : null;
+
 // Combine all schemas
-const structuredData = isBlogPost
-  ? [websiteSchema, authorSchema, blogPostSchema]
-  : [websiteSchema, authorSchema];
+const structuredData = [
+  websiteSchema,
+  authorSchema,
+  ...(isBlogPost ? [blogPostSchema] : []),
+  ...(faqSchema ? [faqSchema] : []),
+];
 ---
 
 <!doctype html>
 <html
   dir={SITE.dir}
-  lang=`${SITE.lang ?? "en"}`
-  class={`${scrollSmooth && "scroll-smooth"}`}
+  lang={`${lang ?? SITE.lang ?? "en"}`}
+  class={`${scrollSmooth ? "scroll-smooth" : ""}`}
 >
   <head>
     <meta charset="UTF-8" />
@@ -179,6 +203,45 @@ const structuredData = isBlogPost
       title={SITE.title}
       href={new URL("rss.xml", Astro.site)}
     />
+
+    <!-- Analytics Integration -->
+    {
+      SITE.googleAnalyticsId && (
+        <>
+          <script
+            type="text/partytown"
+            async
+            src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`}
+          ></script>
+          <script type="text/partytown" is:inline define:vars={{ gaId: SITE.googleAnalyticsId }}>
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', gaId);
+          </script>
+        </>
+      )
+    }
+    {
+      SITE.umami?.websiteId && (
+        <script
+          type="text/partytown"
+          defer
+          src={SITE.umami.url}
+          data-website-id={SITE.umami.websiteId}
+        ></script>
+      )
+    }
+    {
+      SITE.plausible?.domain && (
+        <script
+          type="text/partytown"
+          defer
+          data-domain={SITE.plausible.domain}
+          src={SITE.plausible.url}
+        ></script>
+      )
+    }
 
     <meta name="theme-color" content="" />
 

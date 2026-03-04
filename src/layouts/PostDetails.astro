@@ -33,6 +33,8 @@ const {
   timezone,
   tags,
   hideEditPost,
+  lang,
+  faqs,
 } = post.data;
 
 const { Content } = await render(post);
@@ -66,6 +68,8 @@ const layoutProps = {
   ogImage,
   scrollSmooth: true,
   tags,
+  lang,
+  faqs,
 };
 
 /* ========== Prev/Next Posts ========== */
@@ -231,7 +235,7 @@ const nextPost =
   /** Attaches copy buttons to code blocks in the document,
    * allowing users to copy code easily. */
   function attachCopyButtons() {
-    const copyButtonLabel = "Salin";
+    const copyButtonLabel = "Copy";
     const codeBlocks = Array.from(document.querySelectorAll("pre"));
 
     for (const codeBlock of codeBlocks) {
@@ -270,7 +274,7 @@ const nextPost =
       await navigator.clipboard.writeText(text ?? "");
 
       // visual feedback that task is completed
-      button.innerText = "Disalin";
+      button.innerText = "Copied";
 
       setTimeout(() => {
         button.innerText = copyButtonLabel;

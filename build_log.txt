@@ -1,0 +1,353 @@
+
+> astro-paper@5.5.1 build /Users/rama/Developer/resume/blog
+> astro check && astro build && pagefind --site dist && cp -r dist/pagefind public/
+
+00:32:19 [content] Syncing content
+00:32:19 [content] Synced content
+00:32:19 [types] Generated 346ms
+00:32:19 [check] Getting diagnostics for Astro files in /Users/rama/Developer/resume/blog...
+[96mscripts/migrate-posts.mjs[0m:[93m274[0m:[93m6[0m - [93mwarning[0m[90m ts(6133): [0m'match' is declared but its value is never read.
+
+[7m274[0m     (match, seriesSlug) => {
+[7m   [0m [93m     ~~~~~[0m
+
+[96msrc/layouts/Layout.astro[0m:[93m238[0m:[93m11[0m - [93mwarning[0m[90m astro(4000): [0mThis script will be treated as if it has the `is:inline` directive because it contains an attribute. Therefore, features that require processing (e.g. using TypeScript or npm packages in the script) are unavailable.
+
+See docs for more details: https://docs.astro.build/en/guides/client-side-scripts/#script-processing.
+
+Add the `is:inline` directive explicitly to silence this hint.
+
+[7m238[0m           type="text/partytown"
+[7m   [0m [93m          ~~~~[0m
+[96msrc/layouts/Layout.astro[0m:[93m228[0m:[93m11[0m - [93mwarning[0m[90m astro(4000): [0mThis script will be treated as if it has the `is:inline` directive because it contains an attribute. Therefore, features that require processing (e.g. using TypeScript or npm packages in the script) are unavailable.
+
+See docs for more details: https://docs.astro.build/en/guides/client-side-scripts/#script-processing.
+
+Add the `is:inline` directive explicitly to silence this hint.
+
+[7m228[0m           type="text/partytown"
+[7m   [0m [93m          ~~~~[0m
+[96msrc/layouts/Layout.astro[0m:[93m212[0m:[93m13[0m - [93mwarning[0m[90m astro(4000): [0mThis script will be treated as if it has the `is:inline` directive because it contains an attribute. Therefore, features that require processing (e.g. using TypeScript or npm packages in the script) are unavailable.
+
+See docs for more details: https://docs.astro.build/en/guides/client-side-scripts/#script-processing.
+
+Add the `is:inline` directive explicitly to silence this hint.
+
+[7m212[0m             type="text/partytown"
+[7m   [0m [93m            ~~~~[0m
+
+Result (52 files): 
+- 0 errors
+- 0 warnings
+- 4 hints
+
+00:32:23 [content] Syncing content
+00:32:23 [content] Synced content
+00:32:23 [types] Generated 302ms
+00:32:23 [build] output: "static"
+00:32:23 [build] mode: "static"
+00:32:23 [build] directory: /Users/rama/Developer/resume/blog/dist/
+00:32:23 [build] Collecting build info...
+00:32:23 [build] ✓ Completed in 314ms.
+00:32:23 [build] Building static entrypoints...
+00:32:25 [assets] Copying fonts (12 files)...
+00:32:25 [vite] ✓ built in 1.93s
+00:32:25 [build] ✓ Completed in 1.95s.
+
+ building client (vite) 
+00:32:25 [vite] transforming...
+00:32:25 [assets] Copying fonts (12 files)...
+00:32:25 [vite] ✓ 22 modules transformed.
+00:32:25 [vite] rendering chunks...
+00:32:25 [vite] computing gzip size...
+00:32:25 [vite] dist/_astro/search.astro_astro_type_script_index_0_lang.DEH4dGTD.js         2.14 kB │ gzip:  1.07 kB
+00:32:25 [vite] dist/_astro/ClientRouter.astro_astro_type_script_index_0_lang.QW52Ox2j.js  15.33 kB │ gzip:  5.27 kB
+00:32:25 [vite] dist/_astro/ui-core.NRtbsJWD.js                                            72.93 kB │ gzip: 22.86 kB
+00:32:25 [vite] ✓ built in 184ms
+
+ generating static routes 
+00:32:25 ▶ src/pages/404.astro
+00:32:25   └─ /404.html (+6ms) 
+00:32:25 ▶ src/pages/about.md
+00:32:25   └─ /about/index.html (+2ms) 
+00:32:25 ▶ src/pages/archives/index.astro
+00:32:25   └─ /archives/index.html (+39ms) 
+00:32:26 λ src/pages/blog/[...slug]/index.png.ts
+00:32:26   ├─ /blog/benchmarking-php-health-endpoints-pestphp-stress-test/index.png (+1.86s) 
+00:32:27   ├─ /blog/bash-labyrinth-multiline-strings-to-conquering-chaos/index.png (+1.88s) 
+00:32:29   ├─ /blog/deep-dive-laravel-indexing-pitfalls-boolean-trap/index.png (+1.66s) 
+00:32:31   ├─ /blog/deep-dive-laravel-indexing-advanced/index.png (+1.37s) 
+00:32:32   ├─ /blog/deep-dive-laravel-indexing-common-sql-indexing-traps/index.png (+1.33s) 
+00:32:34   ├─ /blog/deep-dive-laravel-indexing-unlocking-performance-laravel-database-indexing/index.png (+1.52s) 
+00:32:35   ├─ /blog/docker-alpine-migration/index.png (+1.37s) 
+00:32:36   ├─ /blog/flg-01-from-laravel-to-go-01-why-go-appeals-to-a-laravel-developer/index.png (+1.31s) 
+00:32:38   ├─ /blog/flg-02-from-laravel-to-go-part-2-thinking-clean-in-a-statically-typed-world/index.png (+1.27s) 
+00:32:39   ├─ /blog/hello-world/index.png (+1.38s) 
+00:32:40   ├─ /blog/git-commit-squash-revert-undo-guide/index.png (+1.24s) 
+00:32:42   ├─ /blog/how-to-exit-vim-ultimate-guide/index.png (+1.28s) 
+00:32:43   ├─ /blog/hp-octane-swole-01-laravel-octane-swoole-introduction/index.png (+1.37s) 
+00:32:44   ├─ /blog/hp-octane-swole-03-concurrency-asynchronous-workflows/index.png (+1.38s) 
+00:32:46   ├─ /blog/hypervel-authentication-system/index.png (+1.28s) 
+00:32:47   ├─ /blog/hp-octane-swole-02-laravel-octane-swoole-setup/index.png (+1.41s) 
+00:32:48   ├─ /blog/java-21-part-2-setting-up-java-development-vscode/index.png (+1.37s) 
+00:32:50   ├─ /blog/java-21-part-1-installing-java-sdkman/index.png (+1.37s) 
+00:32:51   ├─ /blog/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance/index.png (+1.41s) 
+00:32:53   ├─ /blog/java-21-part-3-java-21-unnamed-classes/index.png (+1.47s) 
+00:32:54   ├─ /blog/java-21-part-4-java-21-pattern-matching-switch/index.png (+1.67s) 
+00:32:56   ├─ /blog/java-not-equals-exponent-print-array-guide/index.png (+1.49s) 
+00:32:57   ├─ /blog/java-21-part-5-java-21-feature-unnamed-patterns/index.png (+1.36s) 
+00:32:59   ├─ /blog/kp-01-kelas-pakar-malaka-project/index.png (+1.46s) 
+00:33:00   ├─ /blog/kp-03-kelas-pakar-if-ghosts-are-real-physics-needs-a-rewrite/index.png (+1.30s) 
+00:33:01   ├─ /blog/kp-02-generalist-vs-specialist/index.png (+1.32s) 
+00:33:03   ├─ /blog/kp-04-kelas-pakar-indonesias-talent-gap-isnt-skills-its-thinking/index.png (+1.39s) 
+00:33:04   ├─ /blog/kp-05-micro-vs-macro-influencers-what-actually-drives-sales-and-trust/index.png (+1.49s) 
+00:33:05   ├─ /blog/kp-06-why-activists-need-math/index.png (+1.30s) 
+00:33:07   ├─ /blog/hp-octane-swoole-05-production-deployment-best-practices/index.png (+1.27s) 
+00:33:08   ├─ /blog/kp-07-beating-indonesias-number-one-killer-with-two-daily-habits/index.png (+1.31s) 
+00:33:09   ├─ /blog/kp-08-can-democracy-survive-when-voters-stop-trusting-parties/index.png (+1.42s) 
+00:33:11   ├─ /blog/laravel-octane-infrastructure-setup-digitalocean/index.png (+1.40s) 
+00:33:12   ├─ /blog/laravel-postgres-1-beyond-eloquent-think-like-a-database/index.png (+1.28s) 
+00:33:13   ├─ /blog/laravel-postgres-2-explain-execution-plan-get/index.png (+1.56s) 
+00:33:15   ├─ /blog/laravel-postgres-3-short-queries-indexes/index.png (+1.55s) 
+00:33:17   ├─ /blog/laravel-postgres-4-long-queries-joins-reports/index.png (+1.30s) 
+00:33:18   ├─ /blog/laravel-postgres-5-ctes-views-partitioning/index.png (+1.25s) 
+00:33:19   ├─ /blog/laravel-postgres-6-norm-n-plus-one-json/index.png (+1.34s) 
+00:33:20   ├─ /blog/laravel-postgres-7-ultimate-query-optimization-checklist/index.png (+1.33s) 
+00:33:22   ├─ /blog/msb-02-setting-up-java-development-environment-sdkman-intellij/index.png (+1.29s) 
+00:33:23   ├─ /blog/msb-01-from-laravel-to-spring-boot-the-fundamental-mindset-shift/index.png (+1.53s) 
+00:33:25   ├─ /blog/msb-03-building-your-first-spring-boot-rest-api/index.png (+1.41s) 
+00:33:26   ├─ /blog/my-epic-quest-to-master-psql-from-show-tables-to-dropping-everything/index.png (+1.39s) 
+00:33:27   ├─ /blog/my-epic-sql-saga-from-clumsy-queries-to-database-dominance/index.png (+1.42s) 
+00:33:29   ├─ /blog/my-epic-quest-to-remove-docker-images/index.png (+1.32s) 
+00:33:30   ├─ /blog/nginx-502-bad-gateway-troubleshooting-guide/index.png (+1.40s) 
+00:33:32   ├─ /blog/php-health-check-endpoints-hyperf-hypervel-webman/index.png (+1.33s) 
+00:33:33   ├─ /blog/sql-queries-guide-for-developers/index.png (+1.24s) 
+00:33:34   ├─ /blog/the-black-box-effect/index.png (+1.27s) 
+00:33:35   ├─ /blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability/index.png (+1.22s) 
+00:33:37   ├─ /blog/ultimate-javascript-handbook-guide/index.png (+1.22s) 
+00:33:38   └─ /blog/rebuilding-laravel-old-error-in-hypervel/index.png (+1.24s) 
+00:33:39 ▶ src/pages/blog/[...page].astro
+00:33:39   ├─ /blog/index.html (+11ms) 
+00:33:39   ├─ /blog/2/index.html (+3ms) 
+00:33:39   ├─ /blog/3/index.html (+2ms) 
+00:33:39   ├─ /blog/4/index.html (+2ms) 
+00:33:39   ├─ /blog/5/index.html (+2ms) 
+00:33:39   └─ /blog/6/index.html (+2ms) 
+00:33:39 ▶ src/pages/blog/[...slug]/index.astro
+00:33:39   ├─ /blog/benchmarking-php-health-endpoints-pestphp-stress-test/index.html (+6ms) 
+00:33:39   ├─ /blog/bash-labyrinth-multiline-strings-to-conquering-chaos/index.html (+3ms) 
+00:33:39   ├─ /blog/deep-dive-laravel-indexing-pitfalls-boolean-trap/index.html (+3ms) 
+00:33:39   ├─ /blog/deep-dive-laravel-indexing-advanced/index.html (+2ms) 
+00:33:39   ├─ /blog/deep-dive-laravel-indexing-common-sql-indexing-traps/index.html (+2ms) 
+00:33:39   ├─ /blog/deep-dive-laravel-indexing-unlocking-performance-laravel-database-indexing/index.html (+3ms) 
+00:33:39   ├─ /blog/docker-alpine-migration/index.html (+2ms) 
+00:33:39   ├─ /blog/flg-01-from-laravel-to-go-01-why-go-appeals-to-a-laravel-developer/index.html (+2ms) 
+00:33:39   ├─ /blog/flg-02-from-laravel-to-go-part-2-thinking-clean-in-a-statically-typed-world/index.html (+2ms) 
+00:33:39   ├─ /blog/hello-world/index.html (+2ms) 
+00:33:39   ├─ /blog/git-commit-squash-revert-undo-guide/index.html (+3ms) 
+00:33:39   ├─ /blog/how-to-exit-vim-ultimate-guide/index.html (+2ms) 
+00:33:39   ├─ /blog/hp-octane-swole-01-laravel-octane-swoole-introduction/index.html (+2ms) 
+00:33:39   ├─ /blog/hp-octane-swole-03-concurrency-asynchronous-workflows/index.html (+2ms) 
+00:33:39   ├─ /blog/hypervel-authentication-system/index.html (+2ms) 
+00:33:39   ├─ /blog/hp-octane-swole-02-laravel-octane-swoole-setup/index.html (+4ms) 
+00:33:39   ├─ /blog/java-21-part-2-setting-up-java-development-vscode/index.html (+3ms) 
+00:33:39   ├─ /blog/java-21-part-1-installing-java-sdkman/index.html (+2ms) 
+00:33:39   ├─ /blog/hp-octane-swoole-04-advanced-caching-data-management-monitoring-performance/index.html (+2ms) 
+00:33:39   ├─ /blog/java-21-part-3-java-21-unnamed-classes/index.html (+2ms) 
+00:33:39   ├─ /blog/java-21-part-4-java-21-pattern-matching-switch/index.html (+3ms) 
+00:33:39   ├─ /blog/java-not-equals-exponent-print-array-guide/index.html (+2ms) 
+00:33:39   ├─ /blog/java-21-part-5-java-21-feature-unnamed-patterns/index.html (+2ms) 
+00:33:39   ├─ /blog/kp-01-kelas-pakar-malaka-project/index.html (+2ms) 
+00:33:39   ├─ /blog/kp-03-kelas-pakar-if-ghosts-are-real-physics-needs-a-rewrite/index.html (+2ms) 
+00:33:39   ├─ /blog/kp-02-generalist-vs-specialist/index.html (+3ms) 
+00:33:39   ├─ /blog/kp-04-kelas-pakar-indonesias-talent-gap-isnt-skills-its-thinking/index.html (+2ms) 
+00:33:39   ├─ /blog/kp-05-micro-vs-macro-influencers-what-actually-drives-sales-and-trust/index.html (+2ms) 
+00:33:39   ├─ /blog/kp-06-why-activists-need-math/index.html (+2ms) 
+00:33:39   ├─ /blog/hp-octane-swoole-05-production-deployment-best-practices/index.html (+2ms) 
+00:33:39   ├─ /blog/kp-07-beating-indonesias-number-one-killer-with-two-daily-habits/index.html (+3ms) 
+00:33:39   ├─ /blog/kp-08-can-democracy-survive-when-voters-stop-trusting-parties/index.html (+2ms) 
+00:33:39   ├─ /blog/laravel-octane-infrastructure-setup-digitalocean/index.html (+4ms) 
+00:33:39   ├─ /blog/laravel-postgres-1-beyond-eloquent-think-like-a-database/index.html (+2ms) 
+00:33:39   ├─ /blog/laravel-postgres-2-explain-execution-plan-get/index.html (+2ms) 
+00:33:39   ├─ /blog/laravel-postgres-3-short-queries-indexes/index.html (+3ms) 
+00:33:39   ├─ /blog/laravel-postgres-4-long-queries-joins-reports/index.html (+2ms) 
+00:33:39   ├─ /blog/laravel-postgres-5-ctes-views-partitioning/index.html (+2ms) 
+00:33:39   ├─ /blog/laravel-postgres-6-norm-n-plus-one-json/index.html (+2ms) 
+00:33:39   ├─ /blog/laravel-postgres-7-ultimate-query-optimization-checklist/index.html (+5ms) 
+00:33:39   ├─ /blog/msb-02-setting-up-java-development-environment-sdkman-intellij/index.html (+2ms) 
+00:33:39   ├─ /blog/msb-01-from-laravel-to-spring-boot-the-fundamental-mindset-shift/index.html (+4ms) 
+00:33:39   ├─ /blog/msb-03-building-your-first-spring-boot-rest-api/index.html (+3ms) 
+00:33:39   ├─ /blog/my-epic-quest-to-master-psql-from-show-tables-to-dropping-everything/index.html (+5ms) 
+00:33:39   ├─ /blog/my-epic-sql-saga-from-clumsy-queries-to-database-dominance/index.html (+2ms) 
+00:33:39   ├─ /blog/my-epic-quest-to-remove-docker-images/index.html (+2ms) 
+00:33:39   ├─ /blog/nginx-502-bad-gateway-troubleshooting-guide/index.html (+3ms) 
+00:33:39   ├─ /blog/php-health-check-endpoints-hyperf-hypervel-webman/index.html (+2ms) 
+00:33:39   ├─ /blog/sql-queries-guide-for-developers/index.html (+2ms) 
+00:33:39   ├─ /blog/the-black-box-effect/index.html (+2ms) 
+00:33:39   ├─ /blog/the-laravolt-way-1-how-to-start-a-laravel-project-for-maximum-speed-and-maintainability/index.html (+4ms) 
+00:33:39   ├─ /blog/ultimate-javascript-handbook-guide/index.html (+4ms) 
+00:33:39   └─ /blog/rebuilding-laravel-old-error-in-hypervel/index.html (+2ms) 
+00:33:39 λ src/pages/og.png.ts
+00:33:39   └─ /og.png (+1.23s) 
+00:33:40 λ src/pages/robots.txt.ts
+00:33:40   └─ /robots.txt (+0ms) 
+00:33:41 λ src/pages/rss.xml.ts
+00:33:41   └─ /rss.xml (+5ms) 
+00:33:41 ▶ src/pages/search.astro
+00:33:41   └─ /search/index.html (+1ms) 
+00:33:41 ▶ src/pages/tags/[tag]/[...page].astro
+00:33:41   ├─ /tags/alpine-linux/index.html (+2ms) 
+00:33:41   ├─ /tags/architecture/index.html (+1ms) 
+00:33:41   ├─ /tags/arrays/index.html (+1ms) 
+00:33:41   ├─ /tags/async/index.html (+1ms) 
+00:33:41   ├─ /tags/authentication/index.html (+1ms) 
+00:33:41   ├─ /tags/blade/index.html (+1ms) 
+00:33:41   ├─ /tags/blog/index.html (+1ms) 
+00:33:41   ├─ /tags/caching/index.html (+1ms) 
+00:33:41   ├─ /tags/career/index.html (+1ms) 
+00:33:41   ├─ /tags/career-development/index.html (+1ms) 
+00:33:41   ├─ /tags/civic-literacy/index.html (+1ms) 
+00:33:41   ├─ /tags/clean-code/index.html (+1ms) 
+00:33:41   ├─ /tags/cleanup/index.html (+1ms) 
+00:33:41   ├─ /tags/cli/index.html (+1ms) 
+00:33:41   ├─ /tags/command-line/index.html (+1ms) 
+00:33:41   ├─ /tags/concurrency/index.html (+1ms) 
+00:33:41   ├─ /tags/craftsmanship/index.html (+2ms) 
+00:33:41   ├─ /tags/database/index.html (+1ms) 
+00:33:41   ├─ /tags/databases/index.html (+1ms) 
+00:33:41   ├─ /tags/deployment/index.html (+1ms) 
+00:33:41   ├─ /tags/developer-tools/index.html (+1ms) 
+00:33:41   ├─ /tags/development/index.html (+1ms) 
+00:33:41   ├─ /tags/devops/index.html (+1ms) 
+00:33:41   ├─ /tags/devops-and-infrastructure/index.html (+1ms) 
+00:33:41   ├─ /tags/digitalocean/index.html (+1ms) 
+00:33:41   ├─ /tags/disk-space/index.html (+1ms) 
+00:33:41   ├─ /tags/docker/index.html (+1ms) 
+00:33:41   ├─ /tags/docker-compose/index.html (+1ms) 
+00:33:41   ├─ /tags/education/index.html (+1ms) 
+00:33:41   ├─ /tags/eloquent/index.html (+1ms) 
+00:33:41   ├─ /tags/email-validation/index.html (+1ms) 
+00:33:41   ├─ /tags/enterprise/index.html (+1ms) 
+00:33:41   ├─ /tags/error-handling/index.html (+1ms) 
+00:33:41   ├─ /tags/es6/index.html (+1ms) 
+00:33:41   ├─ /tags/extension-pack/index.html (+1ms) 
+00:33:41   ├─ /tags/forms/index.html (+1ms) 
+00:33:41   ├─ /tags/full-stack/index.html (+1ms) 
+00:33:41   ├─ /tags/generalist/index.html (+1ms) 
+00:33:41   ├─ /tags/go/index.html (+1ms) 
+00:33:41   ├─ /tags/go-and-craftsmanship/index.html (+1ms) 
+00:33:41   ├─ /tags/golang/index.html (+2ms) 
+00:33:41   ├─ /tags/health-and-society/index.html (+1ms) 
+00:33:41   ├─ /tags/hypervel/index.html (+1ms) 
+00:33:41   ├─ /tags/indexing/index.html (+1ms) 
+00:33:41   ├─ /tags/indonesia/index.html (+1ms) 
+00:33:41   ├─ /tags/indra-de-prestio/index.html (+1ms) 
+00:33:41   ├─ /tags/infrastructure/index.html (+1ms) 
+00:33:41   ├─ /tags/installation/index.html (+1ms) 
+00:33:41   ├─ /tags/instance-main-methods/index.html (+1ms) 
+00:33:41   ├─ /tags/introduction/index.html (+1ms) 
+00:33:41   ├─ /tags/java/index.html (+1ms) 
+00:33:41   ├─ /tags/java-21/index.html (+1ms) 
+00:33:41   ├─ /tags/java-development/index.html (+1ms) 
+00:33:41   ├─ /tags/javascript/index.html (+1ms) 
+00:33:41   ├─ /tags/javascript-tutorial/index.html (+1ms) 
+00:33:41   ├─ /tags/json/index.html (+1ms) 
+00:33:41   ├─ /tags/junit/index.html (+1ms) 
+00:33:41   ├─ /tags/kelas-pakar/index.html (+1ms) 
+00:33:41   ├─ /tags/laravel/index.html (+2ms) 
+00:33:41   ├─ /tags/laravel/2/index.html (+1ms) 
+00:33:41   ├─ /tags/laravel-and-php/index.html (+3ms) 
+00:33:41   ├─ /tags/laravel-and-php/2/index.html (+1ms) 
+00:33:41   ├─ /tags/laravolt/index.html (+1ms) 
+00:33:41   ├─ /tags/learning/index.html (+1ms) 
+00:33:41   ├─ /tags/learning-and-development/index.html (+1ms) 
+00:33:41   ├─ /tags/macos/index.html (+1ms) 
+00:33:41   ├─ /tags/malaka-project/index.html (+1ms) 
+00:33:41   ├─ /tags/marketing-strategy/index.html (+1ms) 
+00:33:41   ├─ /tags/migration/index.html (+1ms) 
+00:33:41   ├─ /tags/monitoring/index.html (+1ms) 
+00:33:41   ├─ /tags/nginx/index.html (+1ms) 
+00:33:41   ├─ /tags/octane/index.html (+1ms) 
+00:33:41   ├─ /tags/optimization/index.html (+1ms) 
+00:33:41   ├─ /tags/pattern-matching/index.html (+1ms) 
+00:33:41   ├─ /tags/performance/index.html (+1ms) 
+00:33:41   ├─ /tags/php/index.html (+1ms) 
+00:33:41   ├─ /tags/politics-and-society/index.html (+1ms) 
+00:33:41   ├─ /tags/postgresql/index.html (+1ms) 
+00:33:41   ├─ /tags/production/index.html (+1ms) 
+00:33:41   ├─ /tags/productivity/index.html (+1ms) 
+00:33:41   ├─ /tags/professional-growth/index.html (+1ms) 
+00:33:41   ├─ /tags/programming-guide/index.html (+1ms) 
+00:33:41   ├─ /tags/psql/index.html (+2ms) 
+00:33:41   ├─ /tags/query-optimization/index.html (+1ms) 
+00:33:41   ├─ /tags/rest-api/index.html (+1ms) 
+00:33:41   ├─ /tags/sail/index.html (+1ms) 
+00:33:41   ├─ /tags/science-literacy/index.html (+1ms) 
+00:33:41   ├─ /tags/sdkman/index.html (+1ms) 
+00:33:41   ├─ /tags/security/index.html (+1ms) 
+00:33:41   ├─ /tags/series-deep-dive-into-laravel-database-indexing/index.html (+1ms) 
+00:33:41   ├─ /tags/series-from-laravel-to-go-writing-clean-craftsmanship-grade-code-in-golang/index.html (+1ms) 
+00:33:41   ├─ /tags/series-kelas-pakar/index.html (+1ms) 
+00:33:41   ├─ /tags/series-laravel-octane-mastery/index.html (+1ms) 
+00:33:41   ├─ /tags/series-spring-boot-for-laravel-developers/index.html (+1ms) 
+00:33:41   ├─ /tags/series-supercharging-laravel-with-postgresql-query-optimization/index.html (+1ms) 
+00:33:41   ├─ /tags/series-the-laravolt-way/index.html (+1ms) 
+00:33:41   ├─ /tags/server/index.html (+1ms) 
+00:33:41   ├─ /tags/sessions/index.html (+1ms) 
+00:33:41   ├─ /tags/setup/index.html (+1ms) 
+00:33:41   ├─ /tags/simplicity/index.html (+1ms) 
+00:33:41   ├─ /tags/skills/index.html (+1ms) 
+00:33:41   ├─ /tags/software-development/index.html (+1ms) 
+00:33:41   ├─ /tags/specialist/index.html (+1ms) 
+00:33:41   ├─ /tags/spring-boot/index.html (+1ms) 
+00:33:41   ├─ /tags/sql/index.html (+2ms) 
+00:33:41   ├─ /tags/supervisor/index.html (+1ms) 
+00:33:41   ├─ /tags/switch/index.html (+1ms) 
+00:33:41   ├─ /tags/swoole/index.html (+1ms) 
+00:33:41   ├─ /tags/testing/index.html (+1ms) 
+00:33:41   ├─ /tags/tutorial/index.html (+1ms) 
+00:33:41   ├─ /tags/typing/index.html (+1ms) 
+00:33:41   ├─ /tags/ubuntu/index.html (+1ms) 
+00:33:41   ├─ /tags/undefined/index.html (+1ms) 
+00:33:41   ├─ /tags/unnamed-classes/index.html (+1ms) 
+00:33:41   ├─ /tags/unnamed-patterns/index.html (+1ms) 
+00:33:41   ├─ /tags/validation/index.html (+1ms) 
+00:33:41   ├─ /tags/variables/index.html (+1ms) 
+00:33:41   ├─ /tags/vscode/index.html (+1ms) 
+00:33:41   ├─ /tags/web-development/index.html (+2ms) 
+00:33:41   ├─ /tags/work-and-education/index.html (+1ms) 
+00:33:41   └─ /tags/youtube/index.html (+1ms) 
+00:33:41 ▶ src/pages/tags/index.astro
+00:33:41   └─ /tags/index.html (+6ms) 
+00:33:41 ▶ src/pages/index.astro
+00:33:41   └─ /index.html (+2ms) 
+00:33:41 ✓ Completed in 75.31s.
+
+00:33:41 [@astrojs/sitemap] `sitemap-index.xml` created at `dist`
+00:33:41 [build] 186 page(s) built in 77.79s
+00:33:41 [build] Complete!
+
+Running Pagefind v1.4.0 (Extended)
+Running from: "/Users/rama/Developer/resume/blog"
+Source:       "dist"
+Output:       "dist/pagefind"
+
+[Walking source directory]
+Found 186 files matching **/*.{html}
+
+[Parsing files]
+Found a data-pagefind-body element on the site.
+↳ Ignoring pages without this tag.
+
+[Reading languages]
+Discovered 1 language: en
+
+[Building search indexes]
+Total: 
+  Indexed 1 language
+  Indexed 53 pages
+  Indexed 9796 words
+  Indexed 0 filters
+  Indexed 0 sorts
+
+Finished in 0.518 seconds
