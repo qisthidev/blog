@@ -210,6 +210,7 @@ const structuredData = [
         <>
           <script
             type="text/partytown"
+            is:inline
             async
             src={`https://www.googletagmanager.com/gtag/js?id=${SITE.googleAnalyticsId}`}
           ></script>
@@ -226,6 +227,7 @@ const structuredData = [
       SITE.umami?.websiteId && (
         <script
           type="text/partytown"
+          is:inline
           defer
           src={SITE.umami.url}
           data-website-id={SITE.umami.websiteId}
@@ -236,6 +238,7 @@ const structuredData = [
       SITE.plausible?.domain && (
         <script
           type="text/partytown"
+          is:inline
           defer
           data-domain={SITE.plausible.domain}
           src={SITE.plausible.url}

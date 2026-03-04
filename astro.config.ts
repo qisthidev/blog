@@ -26,6 +26,10 @@ export default defineConfig({
       themes: { light: "min-light", dark: "night-owl" },
       defaultColor: false,
       wrap: false,
+      langAlias: {
+        neon: "yaml",
+        env: "bash",
+      },
       transformers: [
         transformerFileName({ style: "v2", hideDot: false }),
         transformerNotationHighlight(),

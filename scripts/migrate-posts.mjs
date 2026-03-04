@@ -271,7 +271,7 @@ function fixLinks(body) {
   // Fix series links like /blog/series/name → /tags/series-name
   fixed = fixed.replace(
     /\]\(\/blog\/series\/([^)]+)\)/g,
-    (match, seriesSlug) => {
+    (_, seriesSlug) => {
       return `](/tags/series-${seriesSlug})`;
     }
   );
