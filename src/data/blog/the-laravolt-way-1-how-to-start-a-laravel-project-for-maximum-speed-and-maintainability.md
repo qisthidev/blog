@@ -11,7 +11,6 @@ tags:
   - laravel-and-php
   - series-the-laravolt-way
 description: "Learn the Laravolt way to kickstart your Laravel projects with enterprise-grade quality standards. This beginner-friendly guide covers everything from installation to database design, model relationships, and testing—all designed to help you build robust applications quickly and efficiently."
-canonicalURL: "https://dev.to/qisthi/how-to-start-a-laravel-project"
 faqs:
   - question: "Why should I use Laravolt instead of raw Laravel?"
     answer: "Laravolt provides an enterprise-ready foundation with pre-configured ACL, UI components, and strict quality standards (PHPStan, Pint), saving you hours of initial setup time."

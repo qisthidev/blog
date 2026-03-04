@@ -14,7 +14,7 @@ Are big-name endorsements still worth it, or should you bet on niche creators yo
 
 He doesn’t just theorize—he ran a structured study comparing micro vs. macro influencers and hard vs. soft selling to see what actually influences awareness, trust, and purchasing decisions. With social commerce accelerating and budgets under pressure, these distinctions matter more than ever.
 
-> “Assumptions are just hypotheses—prove them with research and data.” — Dr. Tirta
+> Assumptions are just hypotheses—prove them with research and data.” — Dr. Tirta
 
 ## 1) The Four Tiers and Two Selling Styles, Clarified
 
@@ -30,7 +30,7 @@ Two primary delivery styles:
 • Hard selling: explicit CTAs, clear promotional language, time-bound offers.
 • Soft selling: testimonial-like, organic-feeling mentions without overt CTAs.
 
-> “Hard selling is when the influencer clearly pushes a CTA—‘Don’t forget to buy…’ Soft selling feels organic, with no direct call to action.” — Dr. Tirta
+> Hard selling is when the influencer clearly pushes a CTA—‘Don’t forget to buy…’ Soft selling feels organic, with no direct call to action.” — Dr. Tirta
 
 Why this matters: Your sales vs. brand goals require different instruments. Confusing them leads to mis-set expectations and “this didn’t work” post-mortems that blame the channel instead of the strategy.
 
@@ -45,7 +45,7 @@ Dr. Tirta’s study compared four conditions using randomized treatment with mul
 
 The test context focused on sneaker purchasing decisions—a category where both impulse and credibility matter.
 
-> “We randomized four treatments and compared their effect on purchasing decisions, using SPSS for analysis.” — Dr. Tirta
+> We randomized four treatments and compared their effect on purchasing decisions, using SPSS for analysis.” — Dr. Tirta
 
 Real-world analog:
 
@@ -63,7 +63,7 @@ Key findings:
 • Micro + hard selling can excel at purchasing decisions in affiliate/live-shopping formats.
 • Macro + soft selling performs worst—audiences distrust “casual” endorsements from very large creators.
 
-> “Macro—regardless of language—works for instant sales and awareness, but the most effective delivery is hard selling. Micro + soft is best to maintain trust and credibility.” — Dr. Tirta
+> Macro—regardless of language—works for instant sales and awareness, but the most effective delivery is hard selling. Micro + soft is best to maintain trust and credibility.” — Dr. Tirta
 
 Why this resonates with current trends:
 
@@ -77,7 +77,7 @@ A core mistake is evaluating trust campaigns with revenue metrics or judging sal
 • For instant sales/awareness: compare revenue attributable to the campaign versus cost (a revenue-to-marketing ratio). Pair with paid ads to maximize lift.
 • For trust/credibility: prioritize reach, engagement rate (often 4%+ for micro), and insight quality. Treat this as brand identity investment, not an expense chasing immediate ROI.
 
-> “Brand identity and trust are investments. Don’t measure them like instant sales. Use reach and engagement, not just revenue.” — Dr. Tirta
+> Brand identity and trust are investments. Don’t measure them like instant sales. Use reach and engagement, not just revenue.” — Dr. Tirta
 
 Practical guardrails:
 
@@ -92,7 +92,7 @@ Beyond KOLs, brands are formalizing community voices:
 • Community-Driven Marketing (CDM): leverage owned communities to seed content, feedback, and advocacy.
 • Key Opinion Consumer (KOC): incentivize real customers to share authentic testimonials as micro-ambassadors.
 
-> “Each customer becomes a brand ambassador—KOC is rising, especially when combined with community-driven marketing.” — Dr. Tirta
+> Each customer becomes a brand ambassador—KOC is rising, especially when combined with community-driven marketing.” — Dr. Tirta
 
 When to use KOC/CDM:
 
@@ -133,7 +133,7 @@ Influencer marketing isn’t a coin flip—it’s a toolkit. Choose the right to
 • Micro + hard for purchase intent in social commerce.
 • Avoid Macro + soft’s trust gap unless you have a very specific creative angle.
 
-> “Dreams don’t steer the ship—data does. Dream big, measure precisely.” — Dr. Tirta
+> Dreams don’t steer the ship—data does. Dream big, measure precisely.” — Dr. Tirta
 
 What’s the one campaign you’re running today that’s using the wrong metric for its true goal—and how will you fix it?
 

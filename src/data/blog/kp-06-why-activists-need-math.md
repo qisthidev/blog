@@ -14,7 +14,7 @@ Why do some sharp takes fizzle while others change policy? Often, it’s not pas
 
 In this Kelas Pakar session, applied mathematician Barry Sianturi (Imperial College London) argues that mathematical thinking is the missing superpower behind effective activism. He shows how to move from “hot takes” to proposals that actually map to how governments tax, measure, and implement.
 
-> “If you want stronger critiques of running policies, you have to learn mathematics.” — Barry Sianturi
+> If you want stronger critiques of running policies, you have to learn mathematics.” — Barry Sianturi
 
 ---
 
@@ -22,7 +22,7 @@ In this Kelas Pakar session, applied mathematician Barry Sianturi (Imperial Coll
 
 Policy runs on definitions. Public debates, not so much. Barry starts with a classic slogan: “Tax the rich.” Sounds simple—until you ask “who counts as rich?”
 
-> “Even the term ‘rich’ is highly debatable—income vs. assets, which assets, how do you value them?” — Barry Sianturi
+> Even the term ‘rich’ is highly debatable—income vs. assets, which assets, how do you value them?” — Barry Sianturi
 
 Consider three common misfires:
 
@@ -44,7 +44,7 @@ Without this step, critiques float; with it, they land on actual policy levers.
 
 Barry’s core move is decomposition: identify the variables before reaching a conclusion.
 
-> “With math, you dissect the variables involved, combine them, and check for contradictions with your goals.” — Barry Sianturi
+> With math, you dissect the variables involved, combine them, and check for contradictions with your goals.” — Barry Sianturi
 
 For a wealth tax discussion, minimally consider:
 
@@ -61,7 +61,7 @@ This “variables first” approach exposes trade-offs early and keeps debates h
 
 The punchline of many online debates is misalignment: the tool can’t produce the stated outcome. Barry’s fix is simple—map means to ends, then test for contradictions.
 
-> “Ask if your chosen definitions and instruments actually achieve your redistribution goal—or create side effects that undermine it.” — Barry Sianturi
+> Ask if your chosen definitions and instruments actually achieve your redistribution goal—or create side effects that undermine it.” — Barry Sianturi
 
 Example:
 
@@ -84,7 +84,7 @@ Barry isn’t prescribing heavy math; he’s advocating structured reasoning wit
 - Counterexamples: can a simple scenario falsify your claim?
 - Sensitivity checks: what changes if a variable shifts (e.g., asset valuation by ±10%)?
 
-> “To raise the quality of critique and push effective change, learn to analyze variables, do the arithmetic, and read the literature.” — Barry Sianturi
+> To raise the quality of critique and push effective change, learn to analyze variables, do the arithmetic, and read the literature.” — Barry Sianturi
 
 This is how you turn a moral intuition into a practical case.
 
@@ -94,7 +94,7 @@ This is how you turn a moral intuition into a practical case.
 
 Barry cautions against a common confusion: math skill alone doesn’t guarantee good opinions. You still need domain knowledge—economics, policy design, environmental science, etc.
 
-> “Mathematics is a prerequisite to sharpen critique—but not sufficient. You also need correct premises and domain concepts.” — Barry Sianturi
+> Mathematics is a prerequisite to sharpen critique—but not sufficient. You also need correct premises and domain concepts.” — Barry Sianturi
 
 Practical pairing:
 
@@ -129,6 +129,6 @@ It keeps my arguments honest—and ship‑ready.
 
 Activism moves faster when thinking is tighter. Mathematical reasoning gives you the structure to define terms, map variables, align means to ends, and test claims against reality. That’s how critiques turn into credible proposals—and credible proposals into policy.
 
-> “Dream big—but measure precisely.” — Adapted to Barry’s spirit
+> Dream big—but measure precisely.” — Adapted to Barry’s spirit
 
 What public claim have you seen lately that would change dramatically if we clarified definitions and ran a simple numbers check? Watch the full Kelas Pakar episode [Aktivis Juga Perlu Belajar Matematika](https://youtu.be/5fIwf4pdJp4) and try Barry’s four steps on it today.

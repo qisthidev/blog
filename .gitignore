@@ -25,4 +25,4 @@ pnpm-debug.log*
 
 # pagefind
 
-public/pagefind
+public/pagefind.lighthouseci

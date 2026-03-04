@@ -20,7 +20,7 @@ If your business can’t run without you, you have a job—not a business. Inspi
 
 ## Why Systems Matter
 >
-> “The brain is great for having ideas, not storing them.” — David Allen
+> The brain is great for having ideas, not storing them.” — David Allen
 
 Operating without systems traps everything in your head, causing:
 

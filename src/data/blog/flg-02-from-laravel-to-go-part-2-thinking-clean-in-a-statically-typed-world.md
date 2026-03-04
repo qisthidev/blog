@@ -118,7 +118,7 @@ Because the code already says that.
 
 💡 *Clean Code alignment:*
 
-> “The code should explain itself. Comments only compensate for bad code.”
+> The code should explain itself. Comments only compensate for bad code.”
 
 ---
 
@@ -258,7 +258,7 @@ But over time, you’ll realize it’s not restriction — it’s **guidance**.
 Every Go function becomes a contract: *“Here’s what I expect, and here’s what I’ll give you.”*
 That’s the highest form of Clean Code — readable, predictable, and testable by design.
 
-> “Code should be written to minimize the chance of misunderstanding.”
+> Code should be written to minimize the chance of misunderstanding.”
 > — Robert C. Martin
 
 Go’s compiler is your first code reviewer.

@@ -14,13 +14,13 @@ What happens to a representative democracy when voters no longer trust the very 
 
 In this Kelas Pakar segment, Edbert Gani Suryahudaya (Ph.D student, Political Science, University of Toronto) lays out a clear, research-grounded case: political parties are still essential, but the widening gap between parties and citizens threatens democratic relevance. Why this matters now: declining party identification and growing cynicism can push politics toward gridlock, performative conflict, or extra-parliamentary pressure, none of which reliably produce accountable policy.
 
-> “Democracy of course needs political parties… one of the functions of parties is to filter and aggregate those preferences.” — Edbert Gani Suryahudaya
+> Democracy of course needs political parties… one of the functions of parties is to filter and aggregate those preferences.” — Edbert Gani Suryahudaya
 
 ---
 
 ## 2) The Backbone of Representation: Why Parties Still Matter
 
-> “Demokrasi tentu butuh partai politik… Bagaimana caranya kita mengagregasi preferensi yang berbeda-beda itu dalam konteks pengambilan kebijakan dan arah negara?” — Edbert
+> Demokrasi tentu butuh partai politik… Bagaimana caranya kita mengagregasi preferensi yang berbeda-beda itu dalam konteks pengambilan kebijakan dan arah negara?” — Edbert
 
 - Parties are scaling machines for representation. Millions of citizens have diverse preferences; parties bundle those into governable agendas.
 - Parties also recruit candidates, coordinate coalitions, and maintain continuity between elections—critical for policy delivery, not just campaign promises.
@@ -32,7 +32,7 @@ Real-world analogy: Think of parties as operating systems. You can swap apps (po
 
 ## 3) When Trust Erodes: The Representation Gap
 
-> “Ketika masyarakat tidak percaya pada partai politik, itu sinyal mengkhawatirkan… menunjukkan gap antara ekspektasi masyarakat dengan apa yang dilakukan partai.” — Edbert
+> Ketika masyarakat tidak percaya pada partai politik, itu sinyal mengkhawatirkan… menunjukkan gap antara ekspektasi masyarakat dengan apa yang dilakukan partai.” — Edbert
 
 - The “gap” is not apathy; it’s disconnection. Low party ID can indicate disappointment rather than disengagement.
 - Consequences when the gap widens:
@@ -46,7 +46,7 @@ Accessible framing: Trust is the latency in the democratic network. When latency
 
 ## 4) Can We Do Politics Without Parties? The Limits of Independents and Referendums
 
-> “Mungkin enggak sih berpolitik tanpa partai?… Ada contoh calon independen… Ada juga referendum seperti di Swiss. Tetapi tentu saja itu terlalu melelahkan dan tidak bisa diaplikasikan ke semua negara.” — Edbert
+> Mungkin enggak sih berpolitik tanpa partai?… Ada contoh calon independen… Ada juga referendum seperti di Swiss. Tetapi tentu saja itu terlalu melelahkan dan tidak bisa diaplikasikan ke semua negara.” — Edbert
 
 - Independents exist—even in the U.S.—but scale poorly as a system of governance.
 - Referendums are powerful but heavy. Switzerland’s frequent direct votes rely on unique institutional and civic capacities; they’re not a general-purpose substitute for party systems.
@@ -58,7 +58,7 @@ Mental model: Direct democracy is a specialized tool—great for certain high-sa
 
 ## 5) Rules Shape Party Systems: Lessons from the U.S.
 
-> “Kalau kita belajar di Amerika… yang membuat mereka hanya menjadi dua partai? Itu adalah sistem politiknya… simple majority.” — Edbert
+> Kalau kita belajar di Amerika… yang membuat mereka hanya menjadi dua partai? Itu adalah sistem politiknya… simple majority.” — Edbert
 
 - Electoral rules shape outcomes. Single-member, simple-majority districts tend to compress competition into two major parties (Duverger-like dynamics).
 - But parties aren’t monoliths. Internal factions, networks, and ideological currents compete and evolve.
@@ -70,7 +70,7 @@ Takeaway: Reform isn’t only about creating new parties; it’s also about engi
 
 ## 6) From Disillusionment to Design: How to Rebuild Trust
 
-> “Punya partai baru tidak selalu solusi… pertanyaannya: apa yang mau kita lakukan di dalam partai-partai tersebut? Bisakah kita memotong jarak antara partai politik dan masyarakat?” — Edbert
+> Punya partai baru tidak selalu solusi… pertanyaannya: apa yang mau kita lakukan di dalam partai-partai tersebut? Bisakah kita memotong jarak antara partai politik dan masyarakat?” — Edbert
 
 Actionable directions consistent with Edbert’s analysis:
 
@@ -92,7 +92,7 @@ Actionable directions consistent with Edbert’s analysis:
 - Leverage civic mobilization productively
   - Indonesia’s civic energy is a strategic asset. Channel it into structured engagements (public consultations, whitepaper submissions, MK litigation when necessary) that parties must respond to.
 
-> “Kekuatan demokrasi Indonesia… ada di masyarakatnya yang tidak pernah lelah melakukan mobilisasi.” — Edbert
+> Kekuatan demokrasi Indonesia… ada di masyarakatnya yang tidak pernah lelah melakukan mobilisasi.” — Edbert
 
 ---
 
@@ -117,7 +117,7 @@ In other words: don’t “rewrite the OS” if you can refactor modules, add ob
 
 Edbert’s core message is both cautionary and constructive: representative democracy needs parties, but parties must earn their relevance by closing the gap with citizens—through open participation, clear accountability, and real internal competition.
 
-> “Selama kita terus berjejaring dengan partai politik—begitu pula sebaliknya—masih ada potensi untuk reform from within.” — Edbert
+> Selama kita terus berjejaring dengan partai politik—begitu pula sebaliknya—masih ada potensi untuk reform from within.” — Edbert
 
 A question to sit with: If you could change just one rule or practice to make parties more accountable next year, what would it be—and how would you measure success?
 

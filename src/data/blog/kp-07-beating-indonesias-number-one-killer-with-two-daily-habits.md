@@ -14,7 +14,7 @@ Ask a random person in Indonesia what kills most people, and you’ll likely hea
 
 Enter Dr. Gia Pratama, a hemodialysis and ER physician in South Jakarta, with a front-row view of Indonesia’s chronic disease crisis. His message is as direct as it is hopeful: shift our focus to prevention and we can save lives, livelihoods, and the rupiah.
 
-> “There’s an information gap. People think the top causes of death are suicide, murder, accidents—when in fact it’s heart attacks and strokes. If we shift our focus, we can prevent the two diseases claiming the most lives too soon.” — Dr. Gia Pratama [translated]
+> There’s an information gap. People think the top causes of death are suicide, murder, accidents—when in fact it’s heart attacks and strokes. If we shift our focus, we can prevent the two diseases claiming the most lives too soon.” — Dr. Gia Pratama [translated]
 
 Why now? Because these diseases are getting younger. Kidney failure patients in their 20s and 30s. Stroke survivors sidelined at their peak. And the cost isn’t just medical—it’s national economics when key medical equipment and consumables are imported.
 
@@ -22,7 +22,7 @@ Why now? Because these diseases are getting younger. Kidney failure patients in 
 
 ## 1) One Root Problem: Damaged Blood Vessels
 
-> “Heart attacks happen in the heart; strokes in the brain. Different organs, same problem: blood vessels.” — Dr. Gia Pratama [translated]
+> Heart attacks happen in the heart; strokes in the brain. Different organs, same problem: blood vessels.” — Dr. Gia Pratama [translated]
 
 - The inner lining of our blood vessels (the endothelium) is ultra-smooth, letting blood glide.
 - Over time, risk factors “scuff and tear” that lining—like ripped wallpaper—letting excess sugar and LDL cholesterol accumulate and gradually clog arteries.
@@ -34,7 +34,7 @@ In plain terms: protect your endothelium, protect your life. That means controll
 
 ## 2) The Big Three: Smoking, High Blood Sugar, High Blood Pressure
 
-> “The two biggest risk factors for heart attack and stroke: diabetes and hypertension. And we must be honest—smoking is a huge problem.” — Dr. Gia Pratama [translated]
+> The two biggest risk factors for heart attack and stroke: diabetes and hypertension. And we must be honest—smoking is a huge problem.” — Dr. Gia Pratama [translated]
 
 - Smoking
   - Indonesia has one of the highest male smoking rates in the world. Smoke toxins batter the endothelium and accelerate clogging.
@@ -56,7 +56,7 @@ Real-world analogy:
 
 ## 3) The Hidden Economic Drain
 
-> “Most funds for dialysis and cardiac devices flow abroad—to the countries that manufacture them—not to Indonesian income.” — Dr. Gia Pratama [translated]
+> Most funds for dialysis and cardiac devices flow abroad—to the countries that manufacture them—not to Indonesian income.” — Dr. Gia Pratama [translated]
 
 - Dialysis is costly and recurring. Multiply per-session reimbursements by 2x weekly sessions, 4 weeks per month, across 160,000+ patients—it’s massive recurring spend.
 - Cardiac stents, catheters, surgical bypass equipment—mostly imported.
@@ -68,7 +68,7 @@ Prevention is not just compassionate medicine—it’s national economic policy.
 
 ## 4) The Two-Habit Protocol: Walk at Sunrise, Plank Daily
 
-> “Two simple things, done consistently, have huge impact: brisk walking and planks.” — Dr. Gia Pratama [translated]
+> Two simple things, done consistently, have huge impact: brisk walking and planks.” — Dr. Gia Pratama [translated]
 
 - Brisk walking
   - Dr. Gia champions “Gerakan Mengejar Matahari” (Chasing the Sun): go out after dawn prayers, walk until sunrise, and snap the sunrise as your adherence proof.
@@ -99,7 +99,7 @@ Actionable starter plan:
 
 ## 5) Rethinking “Free Healthcare”
 
-> “Nothing is truly free. BPJS is funded by our contributions and taxes. Prevention frees those funds for education and national progress.” — Dr. Gia Pratama [translated]
+> Nothing is truly free. BPJS is funded by our contributions and taxes. Prevention frees those funds for education and national progress.” — Dr. Gia Pratama [translated]
 
 The moral is simple: every cigarette skipped, every sweetened drink replaced, every dawn walk taken is a micro-investment. Aggregated across neighborhoods and provinces, it’s macro policy—lower claims, stronger currency, more budget for schools and innovation.
 
@@ -131,7 +131,7 @@ Concrete “dev-life” applications:
 
 Indonesia doesn’t need more heroic surgeries; it needs a prevention roadmap people can actually follow. Dr. Gia’s plan is deliberately simple: walk at sunrise, plank daily, cut sugar and salt, stop smoking, know your numbers.
 
-> “The best exercise is the one you do consistently—and progress over time.” — Dr. Gia Pratama [translated]
+> The best exercise is the one you do consistently—and progress over time.” — Dr. Gia Pratama [translated]
 
 What if your neighborhood adopted this two-habit protocol for 30 days? Would BP and glucose trends improve? Would your team ship better because everyone sleeps better? Try it for a month—share your sunrise, and measure what changes.
 

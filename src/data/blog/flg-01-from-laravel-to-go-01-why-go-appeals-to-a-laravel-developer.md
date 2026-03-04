@@ -36,7 +36,7 @@ That’s exactly where I was. As a Laravel developer, I wanted to learn a langua
 
 In *Clean Code*, Uncle Bob says:
 
-> “The only way to go fast is to go well.”
+> The only way to go fast is to go well.”
 
 Laravel makes you fast because it hides complexity — Go makes you fast because it **removes complexity altogether**.
 
