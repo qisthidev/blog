@@ -1,0 +1,77 @@
+name: SEO Audit
+
+permissions:
+  contents: read
+
+on:
+  pull_request:
+    types:
+      - opened
+      - synchronize
+      - reopened
+  push:
+    branches:
+      - main
+
+jobs:
+  seo-audit:
+    name: SEO & Accessibility Audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    strategy:
+      matrix:
+        node-version: [20]
+
+    steps:
+      - name: "☁️ Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "📦 Install pnpm"
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10.11.1
+
+      - name: "⚙️ Setup Node.js ${{ matrix.node-version }}"
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: "pnpm"
+
+      - name: "📦 Install dependencies"
+        run: pnpm install
+
+      - name: "🚀 Build the project"
+        run: pnpm run build
+
+      - name: "🔎 Astro Check (Type & Schema Validation)"
+        run: npx astro check
+
+      - name: "🔗 Check for broken links"
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --verbose --no-progress './dist/**/*.html'
+          fail: true
+
+      - name: "🏠 Install Lighthouse CI"
+        run: npm install -g @lhci/cli@0.14.x
+
+      - name: "💡 Run Lighthouse CI"
+        run: lhci autorun
+        env:
+          LHCI_GITHUB_APP_TOKEN: ${{ secrets.LHCI_GITHUB_APP_TOKEN }}
+
+  link-check-content:
+    name: Content Link Validation
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+
+    steps:
+      - name: "☁️ Checkout repository"
+        uses: actions/checkout@v4
+
+      - name: "🔗 Validate Markdown links"
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: --verbose --no-progress '**/*.md' '**/*.mdx'
+          fail: true
