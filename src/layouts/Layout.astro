@@ -5,6 +5,12 @@ import { PUBLIC_GOOGLE_SITE_VERIFICATION } from "astro:env/client";
 import { SITE } from "@/config";
 import "@/styles/global.css";
 
+// Supported locales for hreflang alternate tags (bilingual ID/EN)
+const LOCALES = [
+  { lang: "en", path: "" },
+  { lang: "id", path: "/id" },
+] as const;
+
 type Props = {
   title?: string;
   author?: string;
@@ -146,6 +152,22 @@ const structuredData = [
     <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
     <link rel="apple-touch-icon" href="/favicon-32x32.png" />
     <link rel="canonical" href={canonicalURL} />
+
+    <!-- Hreflang alternate links for bilingual (ID/EN) support -->
+    {
+      LOCALES.map(({ lang: localeLang, path: localePath }) => {
+        const altUrl = new URL(localePath + Astro.url.pathname, Astro.url);
+        return (
+          <link rel="alternate" hreflang={localeLang} href={altUrl.href} />
+        );
+      })
+    }
+    <link
+      rel="alternate"
+      hreflang="x-default"
+      href={new URL(Astro.url.pathname, Astro.url).href}
+    />
+
     <meta name="generator" content={Astro.generator} />
 
     <!-- Load Font -->
