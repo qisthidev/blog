@@ -8,6 +8,7 @@ tags:
   - laravel
   - devops
   - performance
+ogImage: "../../assets/images/laravel-reverb-nginx.png"
 description: "A complete tutorial on deploying Laravel Reverb with both single-server and separate Nginx reverse proxy architectures, including Supervisor and SSL."
 faqs:
   - question: "Why does Laravel Reverb return a 500 Internal Server Error through Nginx?"
@@ -21,6 +22,8 @@ faqs:
 When building real-time features for production Laravel applications, deploying Laravel Reverb as your WebSocket server is the native choice. However, configuring the reverse proxy—especially in complex network topologies with multiple Nginx layers—is a common stumbling block that breaks the WebSocket handshake.
 
 This tutorial walks through the exact setup needed to deploy Laravel Reverb in production, covering both standard single-server deployments and the separate proxy architecture.
+
+![Laravel Reverb Reverse Proxy](../../assets/images/laravel-reverb-nginx.png)
 
 ## Architecture Overview
 
