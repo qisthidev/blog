@@ -19,11 +19,11 @@ faqs:
 
 > **TL;DR:** Deploying Laravel Reverb behind Nginx requires configuring the proxy block to pass `Upgrade` and `Connection` headers. Internal `REVERB_HOST` must bind to `0.0.0.0`, while the client connects to the public domain via port `443`. In a double-proxy setup, *both* layers must pass these headers.
 
+![Laravel Reverb Reverse Proxy](../../assets/images/laravel-reverb-nginx.png)
+
 When building real-time features for production Laravel applications, deploying Laravel Reverb as your WebSocket server is the native choice. However, configuring the reverse proxy—especially in complex network topologies with multiple Nginx layers—is a common stumbling block that breaks the WebSocket handshake.
 
 This tutorial walks through the exact setup needed to deploy Laravel Reverb in production, covering both standard single-server deployments and the separate proxy architecture.
-
-![Laravel Reverb Reverse Proxy](../../assets/images/laravel-reverb-nginx.png)
 
 ## Architecture Overview
 
