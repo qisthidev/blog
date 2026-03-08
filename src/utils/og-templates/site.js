@@ -1,6 +1,7 @@
 import satori from "satori";
 import { SITE } from "@/config";
 import loadGoogleFonts from "../loadGoogleFont";
+import { getLogoBase64, BRAND } from "./brand-assets.js";
 
 export default async () => {
   return satori(
@@ -16,6 +17,7 @@ export default async () => {
           justifyContent: "center",
         },
         children: [
+          // Shadow card (offset behind)
           {
             type: "div",
             props: {
@@ -23,7 +25,7 @@ export default async () => {
                 position: "absolute",
                 top: "-1px",
                 right: "-1px",
-                border: "4px solid #000",
+                border: `4px solid ${BRAND.red}`,
                 background: "#ecebeb",
                 opacity: "0.9",
                 borderRadius: "4px",
@@ -35,11 +37,12 @@ export default async () => {
               },
             },
           },
+          // Main card
           {
             type: "div",
             props: {
               style: {
-                border: "4px solid #000",
+                border: `4px solid ${BRAND.red}`,
                 background: "#fefbfb",
                 borderRadius: "4px",
                 display: "flex",
@@ -60,6 +63,7 @@ export default async () => {
                     height: "90%",
                   },
                   children: [
+                    // Center content: logo + title + description
                     {
                       type: "div",
                       props: {
@@ -74,6 +78,20 @@ export default async () => {
                           textAlign: "center",
                         },
                         children: [
+                          // Logo
+                          {
+                            type: "img",
+                            props: {
+                              src: getLogoBase64(),
+                              width: 64,
+                              height: 64,
+                              style: {
+                                borderRadius: "8px",
+                                marginBottom: "16px",
+                              },
+                            },
+                          },
+                          // Title
                           {
                             type: "p",
                             props: {
@@ -81,6 +99,7 @@ export default async () => {
                               children: SITE.title,
                             },
                           },
+                          // Description
                           {
                             type: "p",
                             props: {
@@ -91,6 +110,7 @@ export default async () => {
                         ],
                       },
                     },
+                    // Footer: domain
                     {
                       type: "div",
                       props: {
@@ -104,8 +124,12 @@ export default async () => {
                         children: {
                           type: "span",
                           props: {
-                            style: { overflow: "hidden", fontWeight: "bold" },
-                            children: new URL(SITE.website).hostname,
+                            style: {
+                              overflow: "hidden",
+                              fontWeight: "bold",
+                              color: BRAND.red,
+                            },
+                            children: "qisthi.dev",
                           },
                         },
                       },
@@ -122,7 +146,7 @@ export default async () => {
       width: 1200,
       height: 630,
       embedFont: true,
-      fonts: await loadGoogleFonts(SITE.title + SITE.desc + SITE.website),
+      fonts: await loadGoogleFonts(SITE.title + SITE.desc + "qisthi.dev"),
     }
   );
 };

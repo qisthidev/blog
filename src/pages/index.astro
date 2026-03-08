@@ -68,25 +68,36 @@ const topics = [
   <Header />
   <main id="main-content" data-layout="index" class="app-layout">
     <section id="hero" class:list={["pt-8 pb-6", "border-b border-border"]}>
-      <h1 class="my-4 inline-block text-4xl font-bold sm:my-8 sm:text-5xl">
-        Hey, I'm Rama 👋
-      </h1>
-      <a
-        target="_blank"
-        href="/rss.xml"
-        class="inline-block"
-        aria-label="RSS feed"
-        title="RSS Feed"
-      >
-        <IconRss
-          width={20}
-          height={20}
-          class="scale-125 stroke-accent stroke-3 rtl:-rotate-90"
+      <div class="flex items-center gap-5 sm:gap-6">
+        <img
+          src="/avatar.png"
+          alt="Qisthi Ramadhani"
+          width="80"
+          height="80"
+          class="size-20 sm:size-24 rounded-full ring-2 ring-accent/40 ring-offset-2 ring-offset-background flex-shrink-0"
         />
-        <span class="sr-only">RSS Feed</span>
-      </a>
+        <div>
+          <h1 class="my-2 inline-block text-3xl font-bold sm:my-4 sm:text-5xl">
+            Hey, I'm Rama 👋
+          </h1>
+          <a
+            target="_blank"
+            href="/rss.xml"
+            class="inline-block"
+            aria-label="RSS feed"
+            title="RSS Feed"
+          >
+            <IconRss
+              width={20}
+              height={20}
+              class="scale-125 stroke-accent stroke-3 rtl:-rotate-90"
+            />
+            <span class="sr-only">RSS Feed</span>
+          </a>
+        </div>
+      </div>
 
-      <p>
+      <p class="mt-4">
         I'm a full-stack developer from Indonesia, writing about Laravel, PHP,
         Go, PostgreSQL, DevOps, and modern web development. I share deep-dive
         tutorials, performance optimization case studies, and practical guides
