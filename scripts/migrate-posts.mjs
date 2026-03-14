@@ -1,4 +1,5 @@
 #!/usr/bin/env node
+/* eslint-disable no-console */
 /**
  * Migration script: blog_old (Next.js MDX) → blog (AstroPaper MD)
  *
