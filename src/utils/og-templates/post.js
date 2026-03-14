@@ -1,5 +1,4 @@
 import satori from "satori";
-import { SITE } from "@/config";
 import loadGoogleFonts from "../loadGoogleFont";
 import { getLogoBase64, BRAND } from "./brand-assets.js";
 
