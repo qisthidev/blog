@@ -4,7 +4,7 @@ pubDatetime: 2026-03-12T07:00:00Z
 modDatetime:
 title: "Laravel Pulse: Production Monitoring Done Right"
 featured: true
-draft: false
+draft: true
 tags:
   - laravel
   - laravel-and-php
