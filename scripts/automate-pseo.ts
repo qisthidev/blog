@@ -607,18 +607,18 @@ async function processQuery(
   if (dryRun) {
     console.log("\n  [DRY RUN] Generated JSON:");
     console.log(JSON.stringify(parsed, null, 2));
-    return parsed as ErrorGuide | PerformanceGuide;
+    return parsed as unknown as ErrorGuide | PerformanceGuide;
   }
 
   // Append to dataset
   const datasetPath = getDatasetPath(targetHub);
   console.log(`  Appending to: ${datasetPath}`);
-  appendEntry(datasetPath, parsed as ErrorGuide | PerformanceGuide);
+  appendEntry(datasetPath, parsed as unknown as ErrorGuide | PerformanceGuide);
 
   const slug = (parsed as { slug?: string }).slug ?? "unknown";
   console.log(`  Added entry: ${slug}`);
 
-  return parsed as ErrorGuide | PerformanceGuide;
+  return parsed as unknown as ErrorGuide | PerformanceGuide;
 }
 
 async function main(): Promise<void> {
