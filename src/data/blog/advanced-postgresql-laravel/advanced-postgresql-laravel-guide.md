@@ -1,6 +1,6 @@
 ---
 author: Qisthi Ramadhani
-pubDatetime: 2026-03-16T12:20:41.108Z
+pubDatetime: 2026-03-16T15:10:06.244Z
 title: "Advanced PostgreSQL for Laravel Developers"
 featured: true
 draft: false
@@ -74,6 +74,22 @@ Table partitioning splits a large PostgreSQL table into smaller physical sub-tab
 ### 9. [Pg Stat Statements Setup Analysis: Postgresql Performance Guide](/blog/advanced-postgresql-laravel/postgresql-pg-stat-statements-setup-analysis)
 
 pg_stat_statements is a PostgreSQL extension that tracks execution statistics for all SQL statements — execution count, total/mean/min/max time, rows retur...
+
+### 10. [Row Level Security Rls Bypass Laravel: Postgresql Performance Guide](/blog/advanced-postgresql-laravel/postgresql-row-level-security-rls-bypass-laravel)
+
+PostgreSQL Row-Level Security (RLS) acts as a database-tier safeguard, ensuring queries only return rows a user is authorized to see regardless of applicat...
+
+### 11. [Jsonb Gin Index Vs Eav Laravel: Postgresql Performance Guide](/blog/advanced-postgresql-laravel/postgresql-jsonb-gin-index-vs-eav-laravel)
+
+The Entity-Attribute-Value (EAV) pattern is a legacy approach for handling dynamic schemas (like user settings or product attributes) where data is spread...
+
+### 12. [Cursor Pagination Vs Offset Pagination Laravel: Postgresql Performance Guide](/blog/advanced-postgresql-laravel/postgresql-cursor-pagination-vs-offset-pagination-laravel)
+
+Offset pagination (`LIMIT 15 OFFSET 10000`) is the default in Laravel (`paginate()`) but becomes catastrophically slow on large PostgreSQL tables. To fulfi...
+
+### 13. [Pg Trgm Trigram Similarity Vs Ilike Laravel: Postgresql Performance Guide](/blog/advanced-postgresql-laravel/postgresql-pg-trgm-trigram-similarity-vs-ilike-laravel)
+
+Standard B-tree indexes cannot optimize partial substring searches (e.g., `WHERE name ILIKE '%john%'`), forcing PostgreSQL to perform a full sequential tab...
 
 ---
 

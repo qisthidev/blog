@@ -15,14 +15,12 @@ This workflow automates the daily generation of new pSEO entries by executing th
 
 // turbo-all
 
-2. **Run Automation Script:**
-    Once you have the configuration, run the `automate:pseo` script. Use `npm run automate:pseo --` to pass the arguments.
-
-    ```bash
-    npm run automate:pseo -- --model <model> --hub <hub> --query "<query>"
-    # OR if using a batch file
-    npm run automate:pseo -- --model <model> --hub <hub> --batch daily-queries.txt
-    ```
+2. **Generate AI Content (Native Antigravity):**
+    You (Antigravity) generate the content directly using your own intelligence! Do not use the `automate:pseo` script because it requires external API credentials that may not be available.
+    Instead, follow these guidelines:
+    *   Read the target schema defined in `src/data/pseo/schema.ts` (e.g., `ErrorGuide` or `PerformanceGuide`).
+    *   Synthesize deep, technical entries for the requested topics. Be sure to align with the core principles in `SKILL.md` (Zero-Click, highly technical).
+    *   Use the `multi_replace_file_content` or `run_command` tools to safely append your valid JSON output into the array inside `src/data/pseo/<model>.json`.
 
 3. **Verify and Commit:**
     *   Verify the output logs to ensure `generate-pseo.ts` and `validate-pseo.ts` completed successfully without errors.
