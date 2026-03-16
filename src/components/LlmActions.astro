@@ -69,6 +69,7 @@ const { llmMdUrl } = Astro.props;
             setTimeout(() => { span.textContent = original; }, 1500);
           }
         } catch (err) {
+          // eslint-disable-next-line no-console
           console.error("Failed to copy markdown:", err);
         }
       });
@@ -87,6 +88,7 @@ const { llmMdUrl } = Astro.props;
             setTimeout(() => { span.textContent = original; }, 1500);
           }
         } catch (err) {
+          // eslint-disable-next-line no-console
           console.error("Failed to copy link:", err);
         }
       });
