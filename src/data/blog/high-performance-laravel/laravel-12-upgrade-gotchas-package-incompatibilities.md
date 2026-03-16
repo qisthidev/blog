@@ -1,6 +1,6 @@
 ---
 author: Qisthi Ramadhani
-pubDatetime: 2026-03-16T12:20:41.104Z
+pubDatetime: 2026-03-16T15:10:06.238Z
 title: "Laravel 12 Upgrade Gotchas and Package Incompatibilities: How to Fix"
 featured: false
 draft: false

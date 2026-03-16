@@ -1,6 +1,6 @@
 ---
 author: Qisthi Ramadhani
-pubDatetime: 2026-03-16T12:20:41.105Z
+pubDatetime: 2026-03-16T15:10:06.239Z
 title: "PHPStan Level 9 Strict Typing Guide for Laravel: How to Fix"
 featured: false
 draft: false
