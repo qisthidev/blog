@@ -10,6 +10,7 @@ import ShareLinks from "@/components/ShareLinks.astro";
 import LlmActions from "@/components/LlmActions.astro";
 import BackButton from "@/components/BackButton.astro";
 import BackToTopButton from "@/components/BackToTopButton.astro";
+import RelatedPosts from "@/components/RelatedPosts.astro";
 import { getPath } from "@/utils/getPath";
 import { slugifyStr } from "@/utils/slugify";
 import IconChevronLeft from "@/assets/icons/IconChevronLeft.svg";
@@ -138,6 +139,8 @@ const llmMdUrl = new URL(
     <ShareLinks />
 
     <LlmActions llmMdUrl={llmMdUrl} />
+
+    <RelatedPosts currentPost={post} posts={posts} />
 
     <hr class="my-6 border-dashed" />
 

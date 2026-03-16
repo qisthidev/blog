@@ -62,6 +62,20 @@ const topics = [
   { tag: "devops-and-infrastructure", title: "DevOps", emoji: "⚙️" },
   { tag: "productivity", title: "Productivity", emoji: "💡" },
 ];
+
+// pSEO Hub guides
+const guides = [
+  {
+    tag: "high-performance-laravel",
+    title: "🚀 High-Performance Laravel",
+    desc: "Race conditions, queues, Octane, and strict typing",
+  },
+  {
+    tag: "advanced-postgresql-laravel",
+    title: "🐘 Advanced PostgreSQL for Laravel",
+    desc: "EXPLAIN ANALYZE, indexing, partitioning, and monitoring",
+  },
+];
 ---
 
 <Layout>
@@ -159,6 +173,33 @@ const topics = [
           ))
         }
       </div>
+    </section>
+
+    <section
+      id="guides"
+      class:list={["pt-12 pb-6", "border-b border-border"]}
+    >
+      <h2 class="text-2xl font-semibold tracking-wide">📖 Guides</h2>
+      <p class="mt-2 mb-4 text-sm opacity-80">
+        Comprehensive hub-and-spoke guides with production-tested solutions.
+      </p>
+      <ul class="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        {
+          guides.map(guide => (
+            <li>
+              <a
+                href={`/tags/${guide.tag}/`}
+                class="group flex flex-col rounded-lg border border-border p-4 transition-all hover:border-accent/50 hover:bg-accent/5"
+              >
+                <span class="font-semibold group-hover:text-accent">
+                  {guide.title}
+                </span>
+                <span class="text-sm opacity-70">{guide.desc}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
     </section>
 
     {

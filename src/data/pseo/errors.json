@@ -1,0 +1,368 @@
+{
+  "model": "errors",
+  "hub": "high-performance-laravel",
+  "hub_title": "High-Performance Laravel: The Complete Guide",
+  "hub_description": "Master Laravel performance optimization — from Octane and Swoole to queue management, race conditions, and strict typing. Production-tested techniques for building fast, reliable Laravel applications.",
+  "hub_tags": ["laravel", "php", "performance", "high-performance-laravel"],
+  "entries": [
+    {
+      "error_message": "Laravel Race Condition in Cache and Database Locks",
+      "framework": "laravel",
+      "slug": "laravel-race-condition-cache-lock-vs-database-locks",
+      "root_cause": "Race conditions occur when multiple processes or requests attempt to read and write the same resource concurrently without proper synchronization. In Laravel, this commonly manifests during inventory updates, payment processing, or any operation where a read-then-write pattern exists. Without atomic locking, two requests can read the same stale value and both write conflicting updates, leading to data corruption, overselling, or duplicate transactions.",
+      "symptoms": [
+        "Inventory counts going negative in production under high traffic",
+        "Duplicate payment charges for the same order",
+        "Counter values lower than expected after concurrent updates",
+        "Intermittent data corruption that only appears under load",
+        "Database constraint violations during peak traffic"
+      ],
+      "fix_steps": [
+        "Identify the critical section — the code between reading shared state and writing the update",
+        "Choose a locking strategy: Cache::lock() for distributed Redis locks or DB::transaction() with SELECT ... FOR UPDATE for database-level pessimistic locking",
+        "For Cache::lock(): use Cache::lock('resource-key', 10)->block(5, fn() => ...) to acquire a lock with timeout",
+        "For database locks: wrap the operation in DB::transaction() and use ->lockForUpdate() on the Eloquent query",
+        "Add retry logic with exponential backoff for lock acquisition failures",
+        "Test under concurrent load using PestPHP stress testing or Apache Bench to verify the fix"
+      ],
+      "example_code": {
+        "before": "// UNSAFE: Race condition — two requests can read the same quantity\n$product = Product::find($id);\nif ($product->quantity >= $requested) {\n    $product->quantity -= $requested;\n    $product->save();\n    Order::create(['product_id' => $id, 'quantity' => $requested]);\n}",
+        "after": "// SAFE: Using Cache::lock for distributed locking\nuse Illuminate\\Support\\Facades\\Cache;\n\n$lock = Cache::lock(\"product-{$id}-checkout\", 10);\n\ntry {\n    $lock->block(5); // Wait up to 5 seconds to acquire\n\n    DB::transaction(function () use ($id, $requested) {\n        $product = Product::lockForUpdate()->findOrFail($id);\n\n        if ($product->quantity < $requested) {\n            throw new InsufficientStockException();\n        }\n\n        $product->decrement('quantity', $requested);\n        Order::create(['product_id' => $id, 'quantity' => $requested]);\n    });\n} catch (LockTimeoutException $e) {\n    return response()->json(['error' => 'Server busy, please retry'], 503);\n} finally {\n    $lock?->release();\n}",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "performance", "redis", "database", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "When should I use Cache::lock() vs database locks in Laravel?",
+          "answer": "Use Cache::lock() (Redis-backed) when you need distributed locking across multiple servers or when the critical section involves non-database resources (API calls, file operations). Use database locks (SELECT ... FOR UPDATE) when the race condition is purely database-related and you want transactional guarantees. For maximum safety in payment/inventory scenarios, combine both: Cache::lock for distributed coordination and DB::transaction with lockForUpdate for data integrity."
+        },
+        {
+          "question": "How do I test for race conditions in Laravel?",
+          "answer": "Use PestPHP's built-in stress testing: `pest stress http://your-app/checkout --concurrency=10 --duration=5`. You can also write a PHPUnit test that uses PHP's pcntl_fork() or Laravel's Bus::batch() to simulate concurrent requests. Monitor your database for constraint violations and check that counters are correct after the test."
+        },
+        {
+          "question": "Does Laravel Octane make race conditions worse?",
+          "answer": "Yes. Because Octane keeps the application in memory across requests using Swoole workers, global state and singletons persist between requests. This increases the surface area for race conditions. Always use request-scoped data and explicit locking in Octane applications."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "Laravel Queue Deadlock with Redis vs Database Driver",
+      "framework": "laravel",
+      "slug": "laravel-queue-deadlock-redis-vs-database-driver",
+      "root_cause": "Queue deadlocks in Laravel occur when queued jobs compete for the same resources — either at the queue broker level (Redis connection exhaustion, database row locks) or at the application level (jobs that dispatch other jobs that depend on the parent completing first). The database queue driver is particularly prone to deadlocks under high concurrency because it uses SELECT ... FOR UPDATE to reserve jobs, creating lock contention on the jobs table. The Redis driver avoids this with atomic BRPOPLPUSH operations but introduces different failure modes around connection pooling and memory limits.",
+      "symptoms": [
+        "Queue workers become unresponsive and stop processing jobs",
+        "SQLSTATE[40001] Serialization failure: deadlock detected in PostgreSQL",
+        "Redis connection timeout errors in queue worker logs",
+        "Jobs stuck in 'reserved' state that never complete or fail",
+        "Horizon dashboard shows workers as 'paused' with growing job backlog",
+        "Memory usage on Redis server climbing continuously"
+      ],
+      "fix_steps": [
+        "Identify the deadlock type: check Laravel logs for SQLSTATE errors (database deadlock) or Redis timeout errors (connection exhaustion)",
+        "For database driver deadlocks: switch to Redis driver if possible — it uses atomic operations that avoid row-level lock contention",
+        "For Redis connection issues: configure a dedicated Redis connection for queues separate from cache in config/database.php",
+        "Set appropriate queue connection pooling: use QUEUE_REDIS_CONNECTION=queue and define a separate Redis database (e.g., database 1 for queue, 0 for cache)",
+        "Configure retry_after in config/queue.php to be longer than your longest-running job to prevent duplicate processing",
+        "Add --timeout flag to queue workers that is shorter than retry_after to ensure graceful worker recycling",
+        "For circular job dependencies: refactor to use job batches (Bus::batch) or event-driven patterns instead of direct job chaining"
+      ],
+      "example_code": {
+        "before": "// config/database.php — PROBLEMATIC: queue and cache share Redis connection\n'redis' => [\n    'default' => [\n        'url' => env('REDIS_URL'),\n        'host' => env('REDIS_HOST', '127.0.0.1'),\n        'port' => env('REDIS_PORT', '6379'),\n        'database' => env('REDIS_DB', '0'),\n    ],\n],\n\n// config/queue.php\n'redis' => [\n    'driver' => 'redis',\n    'connection' => 'default', // shares with cache!\n    'queue' => 'default',\n    'retry_after' => 90,\n],",
+        "after": "// config/database.php — FIXED: dedicated Redis connection for queues\n'redis' => [\n    'default' => [\n        'url' => env('REDIS_URL'),\n        'host' => env('REDIS_HOST', '127.0.0.1'),\n        'port' => env('REDIS_PORT', '6379'),\n        'database' => env('REDIS_DB', '0'),\n    ],\n    'queue' => [\n        'url' => env('REDIS_URL'),\n        'host' => env('REDIS_HOST', '127.0.0.1'),\n        'port' => env('REDIS_PORT', '6379'),\n        'database' => env('REDIS_QUEUE_DB', '1'), // separate DB\n    ],\n],\n\n// config/queue.php\n'redis' => [\n    'driver' => 'redis',\n    'connection' => 'queue', // dedicated connection\n    'queue' => env('REDIS_QUEUE', 'default'),\n    'retry_after' => 90,\n    'block_for' => 5, // efficient blocking pop\n],",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "redis", "database", "queues", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "Should I use Redis or database driver for Laravel queues in production?",
+          "answer": "Use Redis for production in almost all cases. The database queue driver uses row-level locking (SELECT FOR UPDATE) to reserve jobs, which creates contention under high concurrency. Redis uses atomic operations (BRPOPLPUSH/BLMOVE) that scale much better. The database driver is fine for development, low-traffic apps, or when you cannot run Redis."
+        },
+        {
+          "question": "How do I monitor for queue deadlocks in Laravel?",
+          "answer": "Install Laravel Horizon for Redis-based queues — it provides real-time monitoring of worker status, job throughput, and failure rates. For database queues, query the jobs table for rows with reserved_at timestamps older than retry_after. Set up alerts in your monitoring system (Datadog, New Relic) for queue depth exceeding thresholds and worker count dropping."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "Laravel Octane Swoole Memory Leak in Production",
+      "framework": "laravel",
+      "slug": "laravel-octane-swoole-memory-leak-debugging",
+      "root_cause": "Memory leaks in Laravel Octane with Swoole happen because the application stays in memory across requests instead of bootstrapping fresh on each request like PHP-FPM. Static properties, singletons registered in service providers, event listener accumulation, and improper use of global state all persist between requests, causing memory to grow continuously until the worker is killed. Common culprits include: logging to arrays, caching query results in static properties, adding event listeners in middleware that fire on every request, and third-party packages that assume a fresh process per request.",
+      "symptoms": [
+        "Worker memory usage grows linearly with each request until OOM killer intervenes",
+        "Swoole workers restart frequently due to --max-requests being hit",
+        "Application slows down progressively after deployment",
+        "Random segfaults or bus errors in Swoole worker processes",
+        "Different responses for the same request depending on which worker handles it"
+      ],
+      "fix_steps": [
+        "Enable Octane's built-in memory leak detection: set OCTANE_MAX_REQUESTS=500 to auto-restart workers and confirm the leak exists by monitoring memory over time",
+        "Profile memory with Swoole Tracker or Xdebug: run `php -d memory_limit=512M artisan octane:start` and watch memory per worker",
+        "Audit service providers: ensure any singleton bindings that store request-specific state are flushed — register them in Octane's 'flush' array in config/octane.php",
+        "Check for static property accumulation: search your codebase for `static $` and ensure these are reset between requests",
+        "Review event listeners: move listeners from middleware to EventServiceProvider and ensure Octane flushes them",
+        "Add leaking classes to Octane's warm/flush configuration in config/octane.php",
+        "Use Octane's RequestTerminated listener to manually clean up resources if needed"
+      ],
+      "example_code": {
+        "before": "// LEAKS: Static cache accumulates across requests in Octane\nclass PricingService\n{\n    private static array $cache = [];\n\n    public function getPrice(int $productId): float\n    {\n        if (!isset(self::$cache[$productId])) {\n            self::$cache[$productId] = DB::table('prices')\n                ->where('product_id', $productId)\n                ->value('amount');\n        }\n        return self::$cache[$productId]; // grows forever in Octane\n    }\n}",
+        "after": "// FIXED: Use Octane-aware caching with bounded size\nuse Laravel\\Octane\\Facades\\Octane;\n\nclass PricingService\n{\n    public function __construct(\n        private CacheManager $cache\n    ) {}\n\n    public function getPrice(int $productId): float\n    {\n        return $this->cache->remember(\n            \"price:{$productId}\",\n            now()->addMinutes(5),\n            fn () => DB::table('prices')\n                ->where('product_id', $productId)\n                ->value('amount')\n        );\n    }\n}\n\n// config/octane.php — flush singletons between requests\n'flush' => [\n    PricingService::class,\n],",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "swoole", "octane", "performance", "debugging", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "How do I find which class is leaking memory in Laravel Octane?",
+          "answer": "Use Swoole Tracker or run `php -r \"echo memory_get_usage();\"` before and after handling requests. In development, add logging to Octane's RequestReceived and RequestTerminated events to track memory delta per request. The class with the largest delta is likely your leak. Also search for `static $` properties in your codebase — these are the most common Octane leak source."
+        },
+        {
+          "question": "What is the recommended --max-requests setting for Octane in production?",
+          "answer": "Start with --max-requests=1000. This automatically restarts workers after 1000 requests, preventing runaway memory leaks from crashing your server. If your memory profiling shows no leaks, you can increase this to 10000 or higher. If you see rapid memory growth, lower it to 500 while you investigate."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "Laravel Horizon Redis Cluster Queue Management Issues",
+      "framework": "laravel",
+      "slug": "laravel-horizon-redis-cluster-queue-management",
+      "root_cause": "Laravel Horizon requires specific Redis configuration when running against a Redis Cluster. The default Redis connection in Laravel uses single-node commands (KEYS, SCAN) that don't work in cluster mode because keys are distributed across hash slots on different nodes. Horizon's dashboard, metrics, and auto-balancing features all rely on these commands. Without the correct cluster configuration — using redis arrays prefix, phredis cluster option, or predis cluster — Horizon will fail to discover workers, show empty dashboards, or throw CROSSSLOT errors.",
+      "symptoms": [
+        "CROSSSLOT Keys in request don't hash to the same slot error",
+        "Horizon dashboard shows no workers or supervisors",
+        "Horizon metrics (throughput, runtime, wait) always show zero",
+        "horizon:snapshot artisan command fails silently",
+        "Jobs process correctly but Horizon cannot track them",
+        "MOVED or ASK redirections in Redis logs"
+      ],
+      "fix_steps": [
+        "Configure Redis Cluster connection in config/database.php using the 'clusters' key instead of individual connections",
+        "Set the 'options.cluster' to 'redis' (for phpredis) in your Redis cluster config",
+        "Ensure all Horizon keys use the same hash tag prefix: configure 'options.prefix' with a hash tag like '{horizon}:' so all Horizon keys land on the same node",
+        "Update config/horizon.php to use the cluster connection name",
+        "Verify cluster connectivity with redis-cli -c -h <node> CLUSTER INFO",
+        "If using AWS ElastiCache or DigitalOcean Managed Redis, ensure the cluster endpoint (not individual node endpoints) is in your REDIS_HOST"
+      ],
+      "example_code": {
+        "before": "// config/database.php — BROKEN with Redis Cluster\n'redis' => [\n    'client' => env('REDIS_CLIENT', 'phpredis'),\n    'default' => [\n        'host' => env('REDIS_HOST', '127.0.0.1'),\n        'port' => env('REDIS_PORT', '6379'),\n    ],\n],\n\n// config/horizon.php\n'use' => 'default', // single-node connection can't do KEYS/SCAN",
+        "after": "// config/database.php — CORRECT Redis Cluster config\n'redis' => [\n    'client' => env('REDIS_CLIENT', 'phpredis'),\n    'clusters' => [\n        'default' => [\n            [\n                'host' => env('REDIS_HOST', '127.0.0.1'),\n                'port' => env('REDIS_PORT', '6379'),\n                'database' => 0,\n            ],\n        ],\n        'options' => [\n            'cluster' => 'redis',\n            'prefix' => '{horizon}:', // hash tag ensures same slot\n        ],\n    ],\n],\n\n// config/horizon.php\n'use' => 'default', // now points to cluster config\n'prefix' => '{horizon}:',",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "redis", "horizon", "queues", "devops-and-infrastructure", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "What is a Redis hash tag and why does Horizon need it?",
+          "answer": "A Redis hash tag is a portion of the key name enclosed in curly braces (e.g., {horizon}:metrics). Redis Cluster uses hash slots to distribute keys across nodes, but keys with the same hash tag are guaranteed to land on the same node. Horizon needs this because it uses multi-key operations (MGET, pipelines) that require all involved keys to be on the same node."
+        },
+        {
+          "question": "Can I use Laravel Horizon with AWS ElastiCache Redis Cluster?",
+          "answer": "Yes, but you must use the cluster configuration endpoint (ending in .clustercfg.use1.cache.amazonaws.com), not individual node endpoints. Set REDIS_CLIENT=phpredis (not predis, which has limited cluster support), configure the 'clusters' key in database.php, and use hash tag prefixes for Horizon keys."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "Laravel 12 Upgrade Gotchas and Package Incompatibilities",
+      "framework": "laravel",
+      "slug": "laravel-12-upgrade-gotchas-package-incompatibilities",
+      "root_cause": "Laravel 12 introduces several breaking changes that surface as cryptic errors during or after upgrade. The most common issues include: the shift from Laravel Mix to Vite being enforced (Mix support fully removed), changes to the default exception handler, updated minimum PHP version requirements (PHP 8.2+), removal of deprecated Eloquent methods, and third-party package incompatibilities where packages pinned to laravel/framework ^11.0 refuse to install. The upgrade guide covers the framework changes, but ecosystem package compatibility is the biggest time sink.",
+      "symptoms": [
+        "composer update fails with dependency resolution errors",
+        "Class not found errors for removed facade aliases",
+        "Method not found errors on Eloquent models for removed deprecated methods",
+        "Test suite failures due to updated assertion signatures",
+        "Vite build errors when Mix webpack config still exists",
+        "Package X requires laravel/framework ^11.0 but ^12.0 is installed"
+      ],
+      "fix_steps": [
+        "Read the official Laravel 12 upgrade guide completely before starting",
+        "Update PHP to 8.2+ — check with `php -v` and update your Docker/server config",
+        "Run `composer update --dry-run` first to identify all dependency conflicts without changing anything",
+        "Update third-party packages one at a time: check each package's GitHub for Laravel 12 support branches",
+        "For packages without Laravel 12 support yet, check for community forks or use composer's --ignore-platform-req temporarily",
+        "Remove any remaining Laravel Mix config files (webpack.mix.js) and ensure Vite is configured",
+        "Update deprecated Eloquent calls: replace `$model->forceDelete()` patterns, `Model::unguard()` usage, and removed scope methods",
+        "Run your full test suite after upgrade, fixing deprecation warnings as you go",
+        "Clear all caches: `php artisan config:clear && php artisan cache:clear && php artisan route:clear && php artisan view:clear`"
+      ],
+      "example_code": {
+        "before": "// composer.json — before upgrade\n{\n    \"require\": {\n        \"php\": \"^8.1\",\n        \"laravel/framework\": \"^11.0\",\n        \"spatie/laravel-permission\": \"^5.0\",\n        \"laravel/sanctum\": \"^3.0\"\n    }\n}\n\n// app/Exceptions/Handler.php — old exception handler\nclass Handler extends ExceptionHandler\n{\n    protected $dontReport = [...];\n    protected $dontFlash = [...];\n}",
+        "after": "// composer.json — after upgrade\n{\n    \"require\": {\n        \"php\": \"^8.2\",\n        \"laravel/framework\": \"^12.0\",\n        \"spatie/laravel-permission\": \"^6.0\",\n        \"laravel/sanctum\": \"^4.0\"\n    }\n}\n\n// bootstrap/app.php — Laravel 12 exception handling\nuse Illuminate\\Foundation\\Application;\nuse Illuminate\\Foundation\\Configuration\\Exceptions;\n\nreturn Application::configure(basePath: dirname(__DIR__))\n    ->withExceptions(function (Exceptions $exceptions) {\n        $exceptions->dontReport([\n            // your exception classes\n        ]);\n    })->create();",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "upgrade", "migration", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "How long does a Laravel 12 upgrade typically take?",
+          "answer": "For a well-tested application with 80%+ test coverage, expect 2-4 hours for the framework upgrade itself and 1-2 days for resolving third-party package incompatibilities. Applications with no tests or heavy reliance on deprecated features may take a full week. Always upgrade on a branch and run your test suite before deploying."
+        },
+        {
+          "question": "Can I skip from Laravel 10 directly to Laravel 12?",
+          "answer": "Technically possible but not recommended. Each major version removes deprecations from the previous version. Jumping two versions means dealing with both sets of breaking changes simultaneously. Upgrade 10→11→12 sequentially, running tests after each step."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "PHP 8.4 Property Hooks Migration for Laravel",
+      "framework": "laravel",
+      "slug": "php-84-property-hooks-migration-laravel",
+      "root_cause": "PHP 8.4 introduces property hooks (get/set) that allow defining accessor and mutator logic directly on class properties, replacing the need for magic __get/__set methods or Laravel's attribute casting in many cases. Migrating to property hooks in a Laravel codebase requires understanding the interaction with Eloquent's own accessor/mutator system (which uses PHP attributes since Laravel 9+), knowing where property hooks add value vs where they conflict, and handling edge cases with serialization, validation, and IDE support.",
+      "symptoms": [
+        "Confusion about when to use PHP 8.4 property hooks vs Laravel Attribute accessors",
+        "Property hooks not triggering on Eloquent model attributes (because Eloquent bypasses native property access)",
+        "Type errors when property hooks enforce stricter types than the database column allows",
+        "Serialization failures when using property hooks with Laravel's toArray/toJson"
+      ],
+      "fix_steps": [
+        "Understand the distinction: PHP 8.4 property hooks work on plain PHP classes (DTOs, Value Objects, Services). Eloquent model attributes should continue using Laravel's Attribute casting system",
+        "Use property hooks for DTOs and Value Objects that don't extend Eloquent Model",
+        "For service classes, replace getter/setter boilerplate with property hooks",
+        "Keep using Laravel's `Attribute::make(get: ..., set: ...)` for Eloquent models — property hooks don't intercept Eloquent's attribute access",
+        "Update your PHPStan/Psalm config to support PHP 8.4 syntax",
+        "Add property hooks to your team's coding standards document"
+      ],
+      "example_code": {
+        "before": "// Old PHP: getter/setter boilerplate in a DTO\nclass MoneyDTO\n{\n    private int $cents;\n\n    public function __construct(int $cents)\n    {\n        if ($cents < 0) {\n            throw new InvalidArgumentException('Amount cannot be negative');\n        }\n        $this->cents = $cents;\n    }\n\n    public function getCents(): int\n    {\n        return $this->cents;\n    }\n\n    public function getDollars(): float\n    {\n        return $this->cents / 100;\n    }\n}",
+        "after": "// PHP 8.4: property hooks eliminate boilerplate\nclass MoneyDTO\n{\n    public int $cents {\n        set(int $value) {\n            if ($value < 0) {\n                throw new \\InvalidArgumentException('Amount cannot be negative');\n            }\n            $this->cents = $value;\n        }\n    }\n\n    public float $dollars {\n        get => $this->cents / 100;\n    }\n\n    public function __construct(int $cents)\n    {\n        $this->cents = $cents; // triggers the set hook\n    }\n}",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "php-84", "migration", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "Do PHP 8.4 property hooks work with Eloquent models?",
+          "answer": "Not directly for database attributes. Eloquent uses its own attribute access system (__get/__set magic methods and the Attribute class) that bypasses native PHP property access. Use property hooks for non-Eloquent classes like DTOs, Services, and Value Objects. Continue using Laravel's Attribute::make() for Eloquent model accessors and mutators."
+        },
+        {
+          "question": "Should I refactor all my Laravel getters/setters to property hooks?",
+          "answer": "No. Only refactor plain PHP classes (DTOs, Value Objects, Service classes) where getter/setter boilerplate adds no logic beyond simple validation or transformation. Leave Eloquent models using Laravel's Attribute system, and don't refactor working code just for syntax — do it when you're already modifying the class."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Eloquent N+1 Query Detection and Automatic Eager Loading",
+      "framework": "laravel",
+      "slug": "eloquent-n-plus-1-detection-automatic-eager-loading",
+      "root_cause": "The N+1 query problem occurs when code iterates over a collection of models and accesses a relationship on each one, triggering a separate SQL query per model instead of a single eager-loaded query. In a loop of 100 users with posts, this means 1 query for users + 100 queries for posts = 101 queries instead of 2. Laravel provides built-in N+1 detection via Model::preventLazyLoading() and packages like spatie/laravel-query-detector, but many teams don't enable these until performance problems surface in production.",
+      "symptoms": [
+        "Pages that slow down as data grows (linear query growth with record count)",
+        "Hundreds or thousands of nearly identical SELECT queries in the query log",
+        "Debugbar showing 200+ queries on a single page",
+        "Database CPU spikes during list/index page loads",
+        "LazyLoadingViolationException after enabling preventLazyLoading()"
+      ],
+      "fix_steps": [
+        "Enable N+1 detection in development: add Model::preventLazyLoading(!app()->isProduction()) to AppServiceProvider::boot()",
+        "Install Laravel Debugbar in development to visually identify N+1 patterns",
+        "Fix N+1 queries by adding ->with('relationship') to the original query",
+        "For nested relationships, use dot notation: ->with('posts.comments.author')",
+        "Use ->withCount('relationship') when you only need the count, not the full relation",
+        "Consider ->load('relationship') for conditional eager loading after the initial query",
+        "For API resources, use whenLoaded() to only include relationships that were eager-loaded"
+      ],
+      "example_code": {
+        "before": "// N+1 PROBLEM: 1 query for users + N queries for each user's posts\n// Controller\npublic function index()\n{\n    $users = User::all(); // 1 query\n    return view('users.index', compact('users'));\n}\n\n// Blade template\n@foreach ($users as $user)\n    <p>{{ $user->name }} has {{ $user->posts->count() }} posts</p>\n    {{-- ^ triggers a query per user! --}}\n@endforeach",
+        "after": "// FIXED: Eager load with withCount — only 2 queries total\n// AppServiceProvider.php — enable detection globally\npublic function boot(): void\n{\n    Model::preventLazyLoading(!app()->isProduction());\n}\n\n// Controller\npublic function index()\n{\n    $users = User::withCount('posts') // 2 queries total\n        ->with('latestPost')           // eager load if needed\n        ->paginate(20);\n    return view('users.index', compact('users'));\n}\n\n// Blade template\n@foreach ($users as $user)\n    <p>{{ $user->name }} has {{ $user->posts_count }} posts</p>\n    {{-- ^ uses eager-loaded count, no extra query --}}\n@endforeach",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "eloquent", "database", "postgresql", "performance", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "Should I enable preventLazyLoading() in production?",
+          "answer": "It depends on your risk tolerance. In strict mode, a lazy load throws an exception (500 error). Most teams enable it only in development/testing to catch issues early. If you want production protection without breaking the app, use Model::handleLazyLoadingViolationUsing() to log violations instead of throwing exceptions."
+        },
+        {
+          "question": "What is the performance difference between N+1 and eager loading?",
+          "answer": "With 100 records and 1 relationship: N+1 = 101 queries (often 200-500ms), eager loading = 2 queries (often 5-20ms). The difference grows linearly — with 1000 records, N+1 can take seconds while eager loading stays under 50ms. The database round-trip overhead per query (~1-2ms) is the main cost, not the query execution itself."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "PestPHP Stress Testing for Health Endpoint Benchmarking",
+      "framework": "laravel",
+      "slug": "pestphp-stress-testing-health-endpoints-benchmark",
+      "root_cause": "Benchmarking health check endpoints is essential for validating application performance baselines, load balancer configuration, and Kubernetes readiness/liveness probe reliability. PestPHP's built-in stress testing feature provides a developer-friendly way to run concurrent HTTP load tests without external tools like Apache Bench or k6. Understanding how to write stress tests, interpret results (TTFB, throughput, success rate), and set meaningful thresholds ensures your health endpoints are production-ready. Without benchmarks, you deploy blind — unable to predict how your application will behave under real user load, unable to set accurate auto-scaling thresholds, and unable to detect performance regressions introduced by code changes or dependency updates.",
+      "symptoms": [
+        "Health endpoints returning 503 under moderate load",
+        "Load balancer incorrectly marking healthy instances as unhealthy",
+        "Kubernetes pods restarting due to slow liveness probe responses",
+        "No baseline performance data for capacity planning",
+        "Unclear if application can handle expected concurrent user load",
+        "Performance regressions going undetected until production incidents occur",
+        "Auto-scaling thresholds set based on guesses rather than measured data"
+      ],
+      "fix_steps": [
+        "Install PestPHP if not already present: composer require pestphp/pest --dev — the stress testing feature is included in the core PestPHP package starting from v2.0",
+        "Create a stress test file in tests/Stress/ directory — organize stress tests separately from unit and feature tests so they can be run independently in CI pipelines",
+        "Define endpoint targets and concurrency levels matching your expected production load — start with your health check endpoint at 10 concurrent connections, then scale up to match your expected peak traffic",
+        "Run the stress test: ./vendor/bin/pest stress http://localhost:8000/up --concurrency=10 --duration=10 and capture the baseline results before making any changes",
+        "Analyze the results carefully: TTFB P95 should be under 100ms for health endpoints, success rate must be 100%, and throughput should match your expected requests per second",
+        "Set up CI pipeline stress tests to catch performance regressions before deploy — add the stress test command to your GitHub Actions or GitLab CI workflow with threshold assertions",
+        "Compare results across different frameworks, configurations, and infrastructure setups to make informed architecture decisions backed by real data rather than assumptions"
+      ],
+      "example_code": {
+        "before": "// No benchmark — deploying without performance data\n// routes/web.php\nRoute::get('/up', function () {\n    return response('OK', 200);\n});",
+        "after": "// Stress test with PestPHP\n// tests/Stress/HealthEndpointTest.php\nuse function Pest\\Stressless\\stress;\n\nit('handles health check endpoint under load', function () {\n    $result = stress('http://localhost:8000/up')\n        ->concurrently(10)\n        ->for(10)->seconds();\n\n    expect($result->requests()->successRate())->toBe(100.0);\n    expect($result->requests()->duration()->med())->toBeLessThan(50); // median < 50ms\n    expect($result->requests()->duration()->p95())->toBeLessThan(100); // P95 < 100ms\n});\n\nit('handles database health check under load', function () {\n    $result = stress('http://localhost:8000/up/database')\n        ->concurrently(5)\n        ->for(10)->seconds();\n\n    expect($result->requests()->successRate())->toBe(100.0);\n    expect($result->requests()->duration()->p95())->toBeLessThan(200);\n});",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "testing", "performance", "devops-and-infrastructure", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "How does PestPHP stress testing compare to Apache Bench or k6?",
+          "answer": "PestPHP stress tests integrate directly into your test suite and use PHP's familiar assertion syntax. They're ideal for CI/CD regression checks and developer workflows. For production load testing at scale (10,000+ concurrent users), use dedicated tools like k6, Locust, or Gatling. PestPHP is best for baseline benchmarks and automated regression detection."
+        },
+        {
+          "question": "What is a good TTFB threshold for health endpoints?",
+          "answer": "For health check endpoints: P50 under 10ms, P95 under 50ms, P99 under 100ms. If your health endpoint queries the database, add 20-50ms to each threshold. Load balancers typically have health check timeouts of 5-30 seconds, so anything under 1 second is functional — but faster is better for accurate load distribution."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "PHPStan Level 9 Strict Typing Guide for Laravel",
+      "framework": "laravel",
+      "slug": "phpstan-level-9-strict-typing-guide-laravel",
+      "root_cause": "PHPStan level 9 enforces the strictest static analysis rules in PHP, requiring full type coverage for all parameters, return types, properties, and generics. Laravel's heavy use of magic methods (__get, __set, __call), dynamic facades, and loose-typed collections makes reaching level 9 compliance challenging. Key pain points include: Eloquent model properties not being type-safe by default, Collection generic types, facade return types, and service container resolution. The larastan (phpstan/phpstan for Laravel) extension resolves many of these by providing type stubs for Laravel's magic.",
+      "symptoms": [
+        "Hundreds of PHPStan errors when first enabling level 9",
+        "Cannot access property $name on model App\\Models\\User (magic property not recognized)",
+        "Method App\\Models\\User::where() invoked with wrong parameter types",
+        "Generic type Collection<int, mixed> expected, array given",
+        "Return type of function is mixed but should be specific"
+      ],
+      "fix_steps": [
+        "Install Larastan: composer require larastan/larastan --dev",
+        "Start at level 0 and incrementally increase — don't jump straight to 9",
+        "Generate model type stubs: php artisan ide-helper:models --write to add @property PHPDoc to models",
+        "Use PHPStan baseline to ignore existing errors: phpstan analyse --generate-baseline",
+        "Fix errors level by level, running your test suite after each batch of fixes",
+        "Add return types to all controller methods, service classes, and repository patterns",
+        "Use @template and @extends annotations for custom Collection subclasses",
+        "Configure phpstan.neon with strictRules, Laravel-specific rules, and custom paths to ignore"
+      ],
+      "example_code": {
+        "before": "// PHPStan level 9 errors everywhere\nclass UserService\n{\n    public function findActive() // missing return type\n    {\n        return User::where('active', true)->get(); // Collection<mixed>\n    }\n\n    public function getFullName($user) // missing parameter type\n    {\n        return $user->first_name . ' ' . $user->last_name;\n    }\n}",
+        "after": "// PHPStan level 9 compliant\nuse App\\Models\\User;\nuse Illuminate\\Database\\Eloquent\\Collection;\n\nclass UserService\n{\n    /** @return Collection<int, User> */\n    public function findActive(): Collection\n    {\n        return User::where('active', true)->get();\n    }\n\n    public function getFullName(User $user): string\n    {\n        return \"{$user->first_name} {$user->last_name}\";\n    }\n}\n\n// phpstan.neon\nincludes:\n    - vendor/larastan/larastan/extension.neon\nparameters:\n    level: 9\n    paths:\n        - app/\n    ignoreErrors: []\n    checkGenericClassInNonGenericObjectType: false",
+        "language": "php"
+      },
+      "related_topics": ["laravel", "php", "static-analysis", "testing", "code-quality", "high-performance-laravel"],
+      "faqs": [
+        {
+          "question": "Is PHPStan level 9 worth it for Laravel projects?",
+          "answer": "Yes, for medium-to-large codebases with multiple developers. Level 9 catches entire categories of bugs at analysis time (null access, type mismatches, incorrect method calls). For solo developers or small projects, level 6-7 provides most of the value with less effort. The key is using Larastan and IDE Helper to handle Laravel's magic methods."
+        },
+        {
+          "question": "How do I handle PHPStan errors in Eloquent relationships?",
+          "answer": "Install larastan and run `php artisan ide-helper:models --write` to generate @property PHPDoc annotations on your models. This tells PHPStan the types of all model attributes and relationships. For custom relationship types, add @return annotations to your relationship methods: `/** @return HasMany<Post> */`."
+        }
+      ],
+      "difficulty": "intermediate"
+    }
+  ]
+}

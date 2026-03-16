@@ -10,7 +10,9 @@
     "astro": "astro",
     "format:check": "prettier --check .",
     "format": "prettier --write .",
-    "lint": "eslint ."
+    "lint": "eslint .",
+    "generate:pseo": "tsx scripts/generate-pseo.ts --model all",
+    "validate:pseo": "tsx scripts/validate-pseo.ts"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.14",

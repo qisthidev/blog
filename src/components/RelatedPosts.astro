@@ -1,0 +1,61 @@
+---
+import type { CollectionEntry } from "astro:content";
+import { slugifyStr } from "@/utils/slugify";
+import { getPath } from "@/utils/getPath";
+
+type Props = {
+  currentPost: CollectionEntry<"blog">;
+  posts: CollectionEntry<"blog">[];
+  maxPosts?: number;
+};
+
+const { currentPost, posts, maxPosts = 5 } = Astro.props;
+
+const currentTags = currentPost.data.tags;
+
+// Score all other posts by tag overlap
+const scored = posts
+  .filter(p => p.id !== currentPost.id)
+  .filter(p => !p.data.draft)
+  .map(post => {
+    const overlap = post.data.tags.filter(tag =>
+      currentTags.includes(tag)
+    ).length;
+    return { post, overlap };
+  })
+  .filter(({ overlap }) => overlap > 0)
+  .sort((a, b) => b.overlap - a.overlap)
+  .slice(0, maxPosts);
+---
+
+{
+  scored.length > 0 && (
+    <div data-pagefind-ignore class="mt-6 mb-2">
+      <h2 class="text-lg font-semibold">Related Posts</h2>
+      <ul class="mt-3 space-y-3">
+        {scored.map(({ post }) => (
+          <li>
+            <a
+              href={getPath(post.id, post.filePath)}
+              class="group flex flex-col rounded-lg border border-border p-3 transition-all hover:border-accent/50 hover:bg-accent/5"
+            >
+              <span
+                class="font-medium group-hover:text-accent"
+                style={{
+                  viewTransitionName: slugifyStr(
+                    post.data.title.replaceAll(".", "-")
+                  ),
+                }}
+              >
+                {post.data.title}
+              </span>
+              <span class="mt-1 text-sm opacity-70 line-clamp-2">
+                {post.data.description}
+              </span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
+}

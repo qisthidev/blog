@@ -1,0 +1,283 @@
+{
+  "model": "performance",
+  "hub": "advanced-postgresql-laravel",
+  "hub_title": "Advanced PostgreSQL for Laravel Developers",
+  "hub_description": "Master PostgreSQL performance tuning for Laravel applications — from EXPLAIN ANALYZE and index strategies to autovacuum tuning, connection pooling, and table partitioning. Production-proven techniques for scaling your database layer.",
+  "hub_tags": ["postgresql", "laravel", "database", "performance", "advanced-postgresql-laravel"],
+  "entries": [
+    {
+      "technology": "postgresql",
+      "topic": "slow-query-debugging-explain-analyze",
+      "slug": "postgresql-slow-query-debugging-explain-analyze",
+      "explanation": "EXPLAIN ANALYZE is PostgreSQL's most powerful diagnostic tool for understanding query execution. Unlike EXPLAIN alone (which shows the planner's estimated plan), EXPLAIN ANALYZE actually runs the query and shows real execution times, row counts, and buffer usage for each operation. This lets you identify which part of a complex query is the bottleneck — whether it's a sequential scan that should use an index, a hash join consuming too much memory, or a nested loop multiplying row counts unexpectedly.",
+      "problem_scenario": "Your Laravel application has a dashboard page that takes 8+ seconds to load. Laravel Debugbar shows a single Eloquent query taking 6 seconds. The query joins users, orders, and products tables with WHERE conditions on date ranges and status. You need to find exactly which part of the query is slow and why.",
+      "solution_code": {
+        "before": "-- Slow query: full table scans everywhere\nSELECT users.name, COUNT(orders.id) as order_count,\n       SUM(orders.total) as revenue\nFROM users\nJOIN orders ON orders.user_id = users.id\nJOIN order_items ON order_items.order_id = orders.id\nJOIN products ON products.id = order_items.product_id\nWHERE orders.created_at BETWEEN '2025-01-01' AND '2025-12-31'\n  AND orders.status = 'completed'\n  AND products.category_id = 5\nGROUP BY users.id\nORDER BY revenue DESC\nLIMIT 20;\n\n-- EXPLAIN ANALYZE output (abbreviated):\n-- Sort (cost=45230..45231 rows=20) (actual time=6234.521..6234.530 rows=20)\n--   -> HashAggregate (cost=45200..45220 rows=500) (actual time=6230.100..6234.200 rows=487)\n--     -> Hash Join (cost=12000..44000 rows=50000) (actual time=890.000..6100.000 rows=48723)\n--       -> Seq Scan on orders (cost=0..8500 rows=100000) (actual time=0.02..3200.00 rows=98000)\n--            Filter: (status = 'completed' AND created_at >= ... AND created_at <= ...)\n--            Rows Removed by Filter: 402000  <-- PROBLEM: scanning 500K rows, keeping 98K",
+        "after": "-- Step 1: Add composite index for the filter conditions\nCREATE INDEX CONCURRENTLY idx_orders_status_created\n  ON orders (status, created_at)\n  WHERE status = 'completed';  -- partial index: only index completed orders\n\nCREATE INDEX CONCURRENTLY idx_order_items_order_product\n  ON order_items (order_id, product_id);\n\n-- Step 2: Verify with EXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)\nEXPLAIN (ANALYZE, BUFFERS, FORMAT TEXT)\nSELECT users.name, COUNT(orders.id) as order_count,\n       SUM(orders.total) as revenue\nFROM users\nJOIN orders ON orders.user_id = users.id\nJOIN order_items ON order_items.order_id = orders.id\nJOIN products ON products.id = order_items.product_id\nWHERE orders.created_at BETWEEN '2025-01-01' AND '2025-12-31'\n  AND orders.status = 'completed'\n  AND products.category_id = 5\nGROUP BY users.id\nORDER BY revenue DESC\nLIMIT 20;\n\n-- After indexing:\n-- Index Scan using idx_orders_status_created on orders\n--   (actual time=0.03..45.00 rows=98000)  <-- 3200ms -> 45ms",
+        "language": "sql"
+      },
+      "performance_impact": "Query time reduced from 6.2 seconds to 120ms — a 50x improvement by replacing sequential scans with targeted index scans",
+      "metrics": [
+        { "metric": "Query execution time", "before": "6,234ms", "after": "120ms" },
+        { "metric": "Rows scanned (orders)", "before": "500,000", "after": "98,000" },
+        { "metric": "Buffer hits", "before": "12,400 pages", "after": "890 pages" },
+        { "metric": "Shared read (disk I/O)", "before": "8,200 pages", "after": "12 pages" }
+      ],
+      "related_articles": ["postgresql", "laravel", "database", "performance", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "What is the difference between EXPLAIN and EXPLAIN ANALYZE in PostgreSQL?",
+          "answer": "EXPLAIN shows the query planner's estimated execution plan without running the query — it shows estimated costs and row counts. EXPLAIN ANALYZE actually executes the query and shows real timing and row counts. Always use EXPLAIN ANALYZE for debugging, but be careful: it runs the query, so use it inside a transaction (BEGIN; EXPLAIN ANALYZE ...; ROLLBACK;) for INSERT/UPDATE/DELETE statements."
+        },
+        {
+          "question": "How do I read EXPLAIN ANALYZE output?",
+          "answer": "Read bottom-up. The innermost (most indented) nodes execute first. Look for: (1) large differences between estimated and actual rows — this means stale statistics, run ANALYZE on the table; (2) Seq Scan on large tables — usually needs an index; (3) high 'actual time' values — the bottleneck; (4) 'Rows Removed by Filter' — indicates the scan reads many rows but discards most, suggesting a more selective index is needed."
+        },
+        {
+          "question": "How do I run EXPLAIN ANALYZE on Laravel Eloquent queries?",
+          "answer": "Use DB::enableQueryLog(), run your Eloquent query, then get the SQL with DB::getQueryLog(). Copy the raw SQL (with bindings substituted) and run it in psql or pgAdmin with EXPLAIN ANALYZE prepended. For a quicker approach, use the barryvdh/laravel-debugbar package which shows query plans in the browser."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "index-bloat-detection-pg-repack",
+      "slug": "postgresql-index-bloat-detection-pg-repack",
+      "explanation": "Index bloat occurs when PostgreSQL indexes grow much larger than necessary due to UPDATE and DELETE operations. PostgreSQL's MVCC (Multi-Version Concurrency Control) architecture creates new tuple versions for every update, and while autovacuum cleans up dead tuples from tables, indexes can retain dead pointers that waste space and slow down index scans. Over time, a 100MB index can balloon to 500MB+, causing more disk I/O, larger memory footprint, and slower queries. pg_repack is a zero-downtime tool that rebuilds bloated tables and indexes without locking them.",
+      "problem_scenario": "Your Laravel application's orders table receives 50,000 updates per day (status changes, payment confirmations). After 6 months in production, queries that used to take 5ms now take 50ms. The orders table is 2GB but its indexes total 8GB — far larger than the table itself. REINDEX would fix it but requires an exclusive lock, meaning downtime.",
+      "solution_code": {
+        "before": "-- Detect index bloat using pgstattuple extension\nCREATE EXTENSION IF NOT EXISTS pgstattuple;\n\n-- Check bloat ratio for all indexes on the orders table\nSELECT\n    indexrelid::regclass AS index_name,\n    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size,\n    avg_leaf_density,\n    leaf_fragmentation\nFROM pg_stat_user_indexes\nJOIN pgstatindex(indexrelid::regclass::text) ON true\nWHERE schemaname = 'public'\n  AND relname = 'orders'\nORDER BY pg_relation_size(indexrelid) DESC;\n\n-- Typical bloated output:\n-- index_name              | index_size | avg_leaf_density | leaf_fragmentation\n-- orders_status_idx        | 2.1 GB     | 35.2%            | 78.5%\n-- orders_created_at_idx    | 1.8 GB     | 41.0%            | 65.3%\n-- orders_user_id_idx       | 1.5 GB     | 38.7%            | 71.2%\n-- (avg_leaf_density below 50% = significant bloat)",
+        "after": "-- Install pg_repack (system-level, not SQL)\n-- Ubuntu/Debian: sudo apt install postgresql-16-repack\n-- macOS: brew install pg_repack\n\n-- Create the extension in your database\nCREATE EXTENSION IF NOT EXISTS pg_repack;\n\n-- Repack specific indexes (zero downtime, no locks)\n-- Run from command line, not psql:\npg_repack -d your_database -t orders --only-indexes\n\n-- Or repack the entire table + all its indexes:\npg_repack -d your_database -t orders\n\n-- Verify improvement:\nSELECT\n    indexrelid::regclass AS index_name,\n    pg_size_pretty(pg_relation_size(indexrelid)) AS index_size\nFROM pg_stat_user_indexes\nWHERE schemaname = 'public' AND relname = 'orders'\nORDER BY pg_relation_size(indexrelid) DESC;\n\n-- After pg_repack:\n-- orders_status_idx     | 450 MB  (was 2.1 GB — 78% reduction)\n-- orders_created_at_idx | 520 MB  (was 1.8 GB — 71% reduction)\n-- orders_user_id_idx    | 380 MB  (was 1.5 GB — 75% reduction)",
+        "language": "sql"
+      },
+      "performance_impact": "Index sizes reduced by 70-78%, query response times restored from 50ms back to 5ms original performance, and 4.1GB of disk space reclaimed",
+      "metrics": [
+        { "metric": "Total index size", "before": "5.4 GB", "after": "1.35 GB" },
+        { "metric": "Average query time", "before": "50ms", "after": "5ms" },
+        { "metric": "Disk I/O per query", "before": "~200 pages", "after": "~25 pages" },
+        { "metric": "Table downtime during fix", "before": "15+ min (REINDEX)", "after": "0 (pg_repack)" }
+      ],
+      "related_articles": ["postgresql", "database", "performance", "devops-and-infrastructure", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "How often should I run pg_repack on production databases?",
+          "answer": "For high-write tables (10,000+ updates/day), schedule pg_repack weekly or bi-weekly during low-traffic periods. For moderate-write tables, monthly is sufficient. Monitor bloat levels with pgstattuple — repack when avg_leaf_density drops below 50% or index size exceeds 2x the expected size. You can automate this with a cron job that checks bloat and only repacks when thresholds are exceeded."
+        },
+        {
+          "question": "Is pg_repack safe for production use?",
+          "answer": "Yes, pg_repack is specifically designed for production use. It creates a shadow copy of the table/index, syncs changes via triggers, then atomically swaps the original with the rebuilt version. The only lock required is a brief ACCESS EXCLUSIVE lock during the final swap (typically milliseconds). It's used by companies like GitLab and Instacart on multi-TB databases."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "autovacuum-tuning-high-write-laravel",
+      "slug": "postgresql-autovacuum-tuning-high-write-laravel",
+      "explanation": "PostgreSQL's autovacuum process reclaims storage from dead tuples (rows deleted or updated via MVCC). The default autovacuum settings are conservative — designed for small databases with moderate write loads. For Laravel applications with high write volumes (queue jobs tables, audit logs, session tables), the default settings cause autovacuum to fall behind, leading to table bloat, degraded query performance, and eventually transaction ID wraparound risk. Tuning autovacuum per-table based on write patterns is essential for production Laravel apps.",
+      "problem_scenario": "Your Laravel application uses database queues and writes 100,000 job records per day. The jobs table has grown to 50GB despite only containing 10,000 active rows at any time. Queries against the table are slow, disk usage is climbing, and you see 'WARNING: oldest xmin is far in the past' in PostgreSQL logs — indicating autovacuum can't keep up with the dead tuple volume.",
+      "solution_code": {
+        "before": "-- Check current autovacuum status and dead tuple count\nSELECT\n    relname,\n    n_live_tup,\n    n_dead_tup,\n    n_dead_tup::float / NULLIF(n_live_tup, 0) AS dead_ratio,\n    last_autovacuum,\n    last_autoanalyze,\n    pg_size_pretty(pg_total_relation_size(relid)) AS total_size\nFROM pg_stat_user_tables\nWHERE relname IN ('jobs', 'failed_jobs', 'sessions', 'audit_logs')\nORDER BY n_dead_tup DESC;\n\n-- Typical output for high-write Laravel tables:\n-- relname  | n_live_tup | n_dead_tup | dead_ratio | total_size\n-- jobs     | 10,000     | 2,500,000  | 250.0      | 50 GB\n-- sessions | 5,000      | 800,000    | 160.0      | 12 GB\n-- (dead_ratio > 1.0 means more dead tuples than live — vacuum is behind)",
+        "after": "-- Per-table autovacuum tuning for high-write Laravel tables\n\n-- Jobs table: aggressive vacuum (processes/deletes constantly)\nALTER TABLE jobs SET (\n    autovacuum_vacuum_scale_factor = 0.01,  -- vacuum after 1% dead (default: 20%)\n    autovacuum_vacuum_threshold = 100,       -- or after 100 dead tuples\n    autovacuum_analyze_scale_factor = 0.005, -- analyze after 0.5% changes\n    autovacuum_vacuum_cost_delay = 2,        -- faster vacuum (default: 2ms in PG15+)\n    autovacuum_vacuum_cost_limit = 1000      -- more work per cycle (default: 200)\n);\n\n-- Sessions table: moderate tuning\nALTER TABLE sessions SET (\n    autovacuum_vacuum_scale_factor = 0.05,\n    autovacuum_vacuum_threshold = 500,\n    autovacuum_analyze_scale_factor = 0.02\n);\n\n-- Also increase max autovacuum workers globally in postgresql.conf:\n-- autovacuum_max_workers = 5  (default: 3)\n-- maintenance_work_mem = 1GB  (default: 64MB — more memory = faster vacuum)\n\n-- Verify tuning took effect:\nSELECT relname, reloptions\nFROM pg_class\nWHERE relname IN ('jobs', 'sessions');",
+        "language": "sql"
+      },
+      "performance_impact": "Dead tuple ratio reduced from 250:1 to under 0.1:1, table size reduced from 50GB to 800MB after manual VACUUM FULL, and ongoing autovacuum keeps the table lean automatically",
+      "metrics": [
+        { "metric": "Jobs table size", "before": "50 GB", "after": "800 MB" },
+        { "metric": "Dead tuple ratio", "before": "250:1", "after": "< 0.1:1" },
+        { "metric": "Vacuum frequency", "before": "Every 6 hours", "after": "Every 2 minutes" },
+        { "metric": "Query time on jobs table", "before": "200ms", "after": "8ms" }
+      ],
+      "related_articles": ["postgresql", "laravel", "database", "performance", "devops-and-infrastructure", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "What is the transaction ID wraparound problem in PostgreSQL?",
+          "answer": "PostgreSQL uses 32-bit transaction IDs, giving ~4 billion unique IDs. Once IDs are exhausted, the database must 'wrap around' — but this requires vacuum to have marked old transactions as 'frozen'. If autovacuum falls too far behind, PostgreSQL forces a VACUUM FREEZE that locks the entire table, or worse, shuts down to prevent data corruption. This is why autovacuum tuning is critical for high-write tables."
+        },
+        {
+          "question": "Should I switch from database queues to Redis queues to avoid this problem?",
+          "answer": "Yes, if possible. Redis queues avoid the dead tuple problem entirely since Redis doesn't use MVCC. However, if you must use database queues (e.g., for transactional guarantees or simplicity), the autovacuum tuning above keeps the table manageable. Also consider running `php artisan queue:prune-batches` and `queue:flush` regularly to purge completed/failed jobs."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "pgbouncer-connection-pooling",
+      "slug": "pgbouncer-connection-pooling-transaction-vs-session-mode",
+      "explanation": "PgBouncer is a lightweight connection pooler for PostgreSQL that sits between your application and the database. Laravel applications using PHP-FPM create a new database connection per request, which is expensive — each PostgreSQL connection consumes ~5-10MB of RAM. With 200 concurrent requests, that's 2GB just for connections. PgBouncer maintains a pool of reusable connections, reducing the database server's connection overhead from hundreds to dozens. The key configuration decision is the pooling mode: transaction mode (connections returned to pool after each transaction) vs session mode (connections held for the entire client session).",
+      "problem_scenario": "Your Laravel application serves 500 concurrent users but PostgreSQL is configured with max_connections=100. You see 'FATAL: too many connections' errors during peak traffic. Increasing max_connections to 500 would consume 5GB of RAM just for connection overhead. You need a connection pooler to multiplex 500 application connections into 50 database connections.",
+      "solution_code": {
+        "before": "# No connection pooler — direct connections\n# Laravel .env\nDB_CONNECTION=pgsql\nDB_HOST=db-server.example.com\nDB_PORT=5432\nDB_DATABASE=myapp\nDB_USERNAME=myapp\nDB_PASSWORD=secret\n\n# PostgreSQL postgresql.conf\nmax_connections = 100  # each uses ~10MB RAM\n\n# At 200 concurrent requests:\n# ERROR: FATAL: too many connections for role \"myapp\"",
+        "after": "# PgBouncer config: /etc/pgbouncer/pgbouncer.ini\n[databases]\nmyapp = host=db-server.example.com port=5432 dbname=myapp\n\n[pgbouncer]\nlisten_addr = 0.0.0.0\nlisten_port = 6432\nauth_type = md5\nauth_file = /etc/pgbouncer/userlist.txt\n\n# Pool mode: transaction (recommended for Laravel)\npool_mode = transaction\n\n# Pool sizing\ndefault_pool_size = 50       # max connections to PostgreSQL per database\nmax_client_conn = 1000       # max connections from application\nmin_pool_size = 10           # keep 10 connections warm\nreserve_pool_size = 5        # extra connections for peak bursts\nreserve_pool_timeout = 3     # wait 3s before using reserve pool\n\n# Laravel .env — point to PgBouncer, not PostgreSQL directly\nDB_CONNECTION=pgsql\nDB_HOST=pgbouncer.example.com  # PgBouncer host\nDB_PORT=6432                    # PgBouncer port (not 5432)\nDB_DATABASE=myapp\nDB_USERNAME=myapp\nDB_PASSWORD=secret\n\n# IMPORTANT for transaction mode: disable prepared statements in Laravel\n# config/database.php\n'pgsql' => [\n    'driver' => 'pgsql',\n    'options' => [\n        PDO::ATTR_EMULATE_PREPARES => true,  # required for transaction mode\n    ],\n],",
+        "language": "ini"
+      },
+      "performance_impact": "Database connection count reduced from 500 to 50 (90% reduction), connection memory overhead reduced from 5GB to 500MB, and peak request throughput doubled due to elimination of connection establishment overhead",
+      "metrics": [
+        { "metric": "Active PostgreSQL connections", "before": "200-500", "after": "50 (pooled)" },
+        { "metric": "Connection memory usage", "before": "5 GB", "after": "500 MB" },
+        { "metric": "Connection establishment time", "before": "50-100ms", "after": "< 1ms (pooled)" },
+        { "metric": "Max concurrent users supported", "before": "100", "after": "1000+" }
+      ],
+      "related_articles": ["postgresql", "laravel", "database", "performance", "devops-and-infrastructure", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "Should I use transaction mode or session mode with Laravel?",
+          "answer": "Use transaction mode for most Laravel applications. It returns connections to the pool after each transaction, maximizing connection reuse. Session mode holds connections for the entire PHP request, providing less pooling benefit. The caveat: transaction mode doesn't support prepared statements, SET commands, or LISTEN/NOTIFY. Laravel works fine in transaction mode — just set PDO::ATTR_EMULATE_PREPARES => true and avoid using database sessions."
+        },
+        {
+          "question": "Can I use PgBouncer with Laravel Octane?",
+          "answer": "Yes, and it's especially important. Octane keeps Swoole workers alive long-term, and each worker holds a persistent database connection. Without PgBouncer, 32 Octane workers means 32 permanent connections. With PgBouncer in transaction mode, these workers share a smaller pool of actual database connections, significantly reducing server-side resource usage."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "partial-index-vs-expression-index",
+      "slug": "postgresql-partial-index-vs-expression-index",
+      "explanation": "PostgreSQL supports two advanced index types that most developers underuse: partial indexes (WHERE clause on the index itself) and expression indexes (indexing the result of a function or expression). A partial index only indexes rows matching a condition, making it smaller and faster than a full index. An expression index indexes computed values, enabling index lookups on transformations like LOWER(), date_trunc(), or JSON field extraction. Knowing when to use each — and when to combine them — can dramatically reduce index size and improve query performance for common Laravel query patterns.",
+      "problem_scenario": "Your Laravel application has a 50-million-row events table. Common queries filter by status='active' (only 2% of rows) and search by LOWER(email). A full B-tree index on status wastes space indexing the 98% of inactive rows. A full index on email doesn't help case-insensitive searches. You need targeted indexes that match your actual query patterns.",
+      "solution_code": {
+        "before": "-- Inefficient: full indexes on columns with skewed distributions\nCREATE INDEX idx_events_status ON events (status);\n-- Size: 380MB (indexes ALL 50M rows, but queries only need 'active')\n\nCREATE INDEX idx_events_email ON events (email);\n-- Doesn't help: WHERE LOWER(email) = 'user@example.com' can't use this index\n\n-- Query still does sequential scan or inefficient index scan:\nEXPLAIN ANALYZE\nSELECT * FROM events\nWHERE status = 'active'\n  AND LOWER(email) = 'user@example.com';\n-- Seq Scan on events (actual time=0.02..4500.00 rows=1)",
+        "after": "-- Partial index: only index the 2% of rows that are 'active'\nCREATE INDEX CONCURRENTLY idx_events_active\n  ON events (created_at, email)\n  WHERE status = 'active';\n-- Size: 8MB (vs 380MB) — 98% smaller!\n\n-- Expression index: index the LOWER() result\nCREATE INDEX CONCURRENTLY idx_events_email_lower\n  ON events (LOWER(email))\n  WHERE status = 'active';  -- combined partial + expression!\n-- Size: 4MB\n\n-- Query now uses the targeted indexes:\nEXPLAIN ANALYZE\nSELECT * FROM events\nWHERE status = 'active'\n  AND LOWER(email) = 'user@example.com';\n-- Index Scan using idx_events_email_lower (actual time=0.03..0.05 rows=1)\n\n-- In Laravel, the matching query:\n$events = Event::where('status', 'active')\n    ->whereRaw('LOWER(email) = ?', [strtolower($email)])\n    ->get();",
+        "language": "sql"
+      },
+      "performance_impact": "Index size reduced from 380MB to 4MB (99% reduction), query time reduced from 4.5 seconds to 0.05ms, and write performance improved because smaller indexes are faster to update on INSERT/UPDATE",
+      "metrics": [
+        { "metric": "Index size", "before": "380 MB", "after": "4 MB" },
+        { "metric": "Query time", "before": "4,500ms", "after": "0.05ms" },
+        { "metric": "INSERT overhead per row", "before": "~2ms (updating large index)", "after": "~0.1ms" },
+        { "metric": "Index maintenance I/O", "before": "High", "after": "Minimal" }
+      ],
+      "related_articles": ["postgresql", "laravel", "database", "performance", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "When should I use a partial index vs a regular index?",
+          "answer": "Use a partial index when your queries consistently filter for a small subset of rows in a large table. Common examples: active/published records in a mostly-archived table, pending orders in a completed-orders-heavy table, or unread notifications. The rule of thumb: if your WHERE condition matches less than 20% of the table, a partial index will be significantly smaller and faster than a full index."
+        },
+        {
+          "question": "Can Laravel migrations create partial and expression indexes?",
+          "answer": "Not with the standard Schema builder, but you can use raw SQL in migrations: `DB::statement('CREATE INDEX CONCURRENTLY idx_name ON table (LOWER(column)) WHERE condition');`. For reusable patterns, create a macro or use the tpetry/laravel-postgresql-enhanced package which adds ->wherePartial() and ->using() methods to the migration builder."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "brin-index-time-series",
+      "slug": "postgresql-brin-index-time-series-data",
+      "explanation": "BRIN (Block Range INdex) is a PostgreSQL index type designed for physically ordered data — most commonly time-series data where rows are inserted in chronological order. Unlike B-tree indexes that store a pointer for every row, BRIN stores summary information (min/max values) for ranges of physical table blocks. This makes BRIN indexes 100-1000x smaller than equivalent B-tree indexes while providing excellent performance for range queries on naturally ordered data. For Laravel applications logging events, metrics, or audit trails, BRIN indexes on timestamp columns are a massive optimization.",
+      "problem_scenario": "Your Laravel application has an analytics_events table with 500 million rows, growing by 2 million per day. The primary query pattern is filtering by date range: 'give me all events from the last 7 days'. A B-tree index on created_at would be 12GB. You need an index that's small enough to fit in RAM and fast enough for date range queries.",
+      "solution_code": {
+        "before": "-- B-tree index on timestamp: works but HUGE\nCREATE INDEX idx_events_created_btree ON analytics_events (created_at);\n-- Index size: 12 GB on 500M rows\n-- Works well for exact lookups and ranges but:\n-- 1. Takes 45 minutes to CREATE\n-- 2. Consumes 12GB of disk and memory\n-- 3. Every INSERT must update the B-tree (write amplification)\n\n-- Typical range query:\nSELECT COUNT(*), event_type, date_trunc('hour', created_at) as hour\nFROM analytics_events\nWHERE created_at >= NOW() - INTERVAL '7 days'\nGROUP BY event_type, hour\nORDER BY hour;",
+        "after": "-- BRIN index: tiny and perfect for time-series data\nCREATE INDEX idx_events_created_brin\n  ON analytics_events\n  USING brin (created_at)\n  WITH (pages_per_range = 32);  -- tune based on your data density\n-- Index size: 2 MB on 500M rows (6000x smaller than B-tree!)\n-- Creates in seconds, not 45 minutes\n\n-- Same query, now using BRIN:\nEXPLAIN ANALYZE\nSELECT COUNT(*), event_type, date_trunc('hour', created_at) as hour\nFROM analytics_events\nWHERE created_at >= NOW() - INTERVAL '7 days'\nGROUP BY event_type, hour\nORDER BY hour;\n-- Bitmap Heap Scan on analytics_events\n--   Recheck Cond: (created_at >= ...)\n--   -> Bitmap Index Scan on idx_events_created_brin\n--      (actual time=2.5..2.5 rows=14000000 loops=1)\n\n-- When NOT to use BRIN: if you need exact-match lookups\n-- or data is inserted out of chronological order (use B-tree instead)\n\n-- Laravel migration:\nDB::statement('\n    CREATE INDEX idx_events_created_brin\n    ON analytics_events USING brin (created_at)\n    WITH (pages_per_range = 32)\n');",
+        "language": "sql"
+      },
+      "performance_impact": "Index size reduced from 12GB to 2MB (6,000x smaller), index creation time reduced from 45 minutes to 3 seconds, and date range queries perform within 10% of B-tree speed while using 0.02% of the storage",
+      "metrics": [
+        { "metric": "Index size", "before": "12 GB (B-tree)", "after": "2 MB (BRIN)" },
+        { "metric": "Index creation time", "before": "45 minutes", "after": "3 seconds" },
+        { "metric": "Write amplification", "before": "High (B-tree maintenance)", "after": "Minimal" },
+        { "metric": "Range query performance", "before": "120ms (B-tree)", "after": "135ms (BRIN)" }
+      ],
+      "related_articles": ["postgresql", "database", "performance", "laravel", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "What is the pages_per_range setting in BRIN indexes?",
+          "answer": "pages_per_range controls how many physical table pages are summarized by each BRIN index entry. Lower values (e.g., 16) give more precision (fewer false positives) but a larger index. Higher values (e.g., 128) give a smaller index but may scan more unnecessary pages. For time-series data with consistent insertion rate, 32 is a good default. Tune by monitoring the ratio of heap pages fetched vs actual matching rows."
+        },
+        {
+          "question": "Can I use BRIN indexes on columns that aren't timestamps?",
+          "answer": "Yes, BRIN works on any column where values are physically correlated with their storage location (row insertion order). Auto-incrementing IDs, sequential invoice numbers, and any column that naturally increases with insertion time all benefit from BRIN. If a column's values are randomly distributed (like UUIDs or hashed values), BRIN provides no benefit — use B-tree instead."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "n-plus-1-detection-fix-laravel-eloquent",
+      "slug": "postgresql-n-plus-1-detection-fix-laravel-eloquent",
+      "explanation": "The N+1 query problem is the most common performance issue in Laravel applications using PostgreSQL. It occurs when code loads a collection of models and then accesses a relationship on each model individually, generating 1 (collection) + N (per-model relationship) queries instead of 2 optimized queries. PostgreSQL's per-query overhead (parsing, planning, network round-trip) compounds with N+1 patterns: 100 extra queries add 100-200ms of pure overhead regardless of how simple each query is. Combined with PostgreSQL's advanced query planner — which spends more time planning than MySQL — the overhead is even more pronounced.",
+      "problem_scenario": "Your Laravel dashboard shows 'Top Customers with Recent Orders'. The Eloquent query loads 50 customers, then the Blade template accesses each customer's orders, shipping addresses, and order items — generating 50 * 3 = 150 additional queries. The page loads in 3.2 seconds with PostgreSQL vs 1.8 seconds with the same data in MySQL, because PostgreSQL's planning overhead per query is higher.",
+      "solution_code": {
+        "before": "// Controller: Loads customers with N+1 pattern\npublic function dashboard()\n{\n    $customers = Customer::where('tier', 'premium')\n        ->orderBy('total_spend', 'desc')\n        ->limit(50)\n        ->get();  // 1 query\n\n    return view('dashboard', compact('customers'));\n}\n\n// Blade template — triggers N+1:\n@foreach ($customers as $customer)\n    <p>{{ $customer->name }}</p>\n    <p>Orders: {{ $customer->orders->count() }}</p>      {{-- +50 queries --}}\n    <p>{{ $customer->shippingAddress->city }}</p>          {{-- +50 queries --}}\n    @foreach ($customer->orders->take(3) as $order)\n        <p>{{ $order->items->count() }} items</p>         {{-- +150 queries --}}\n    @endforeach\n@endforeach\n// Total: 1 + 50 + 50 + 150 = 251 queries!",
+        "after": "// Controller: Eager load ALL needed relationships upfront\npublic function dashboard()\n{\n    $customers = Customer::where('tier', 'premium')\n        ->with([\n            'orders' => fn ($q) => $q->latest()->limit(3),  // constrained eager load\n            'orders.items',                                   // nested eager load\n            'shippingAddress',                                 // simple eager load\n        ])\n        ->withCount('orders')    // adds orders_count without loading all orders\n        ->orderBy('total_spend', 'desc')\n        ->limit(50)\n        ->get();  // 4 queries total (customers, orders, items, addresses)\n\n    return view('dashboard', compact('customers'));\n}\n\n// Enable N+1 detection globally:\n// app/Providers/AppServiceProvider.php\npublic function boot(): void\n{\n    Model::preventLazyLoading(!app()->isProduction());\n\n    // In production: log instead of throwing\n    Model::handleLazyLoadingViolationUsing(function ($model, $relation) {\n        Log::warning(\"N+1 detected: {$model}::{$relation}\");\n    });\n}\n\n// Blade template — same template, now uses eager-loaded data:\n@foreach ($customers as $customer)\n    <p>{{ $customer->name }}</p>\n    <p>Orders: {{ $customer->orders_count }}</p>  {{-- uses cached count --}}\n    <p>{{ $customer->shippingAddress->city }}</p>  {{-- uses eager-loaded --}}\n    @foreach ($customer->orders as $order)\n        <p>{{ $order->items->count() }} items</p>  {{-- uses eager-loaded --}}\n    @endforeach\n@endforeach\n// Total: 4 queries (97% reduction)",
+        "language": "php"
+      },
+      "performance_impact": "Query count reduced from 251 to 4 (98% reduction), page load time reduced from 3.2 seconds to 180ms, and PostgreSQL server CPU usage dropped by 60% during dashboard loads",
+      "metrics": [
+        { "metric": "SQL queries per page load", "before": "251", "after": "4" },
+        { "metric": "Page load time", "before": "3,200ms", "after": "180ms" },
+        { "metric": "Database CPU per request", "before": "~85ms", "after": "~12ms" },
+        { "metric": "Network round-trips", "before": "251", "after": "4" }
+      ],
+      "related_articles": ["postgresql", "laravel", "eloquent", "database", "performance", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "Why is N+1 worse with PostgreSQL than MySQL?",
+          "answer": "PostgreSQL's query planner is more sophisticated than MySQL's — it considers more join strategies, statistics, and cost models. This means each query has higher planning overhead (~0.5-2ms vs ~0.1-0.5ms for MySQL). When multiplied by 200+ N+1 queries, the planning cost alone adds 100-400ms. Additionally, PostgreSQL's per-connection memory usage is higher, so many concurrent N+1 patterns compound the issue."
+        },
+        {
+          "question": "How do I find all N+1 queries in an existing Laravel application?",
+          "answer": "Three approaches: (1) Enable Model::preventLazyLoading() in development — it throws exceptions on any lazy load. (2) Install barryvdh/laravel-debugbar — it shows query count per page with duplicate highlighting. (3) Use the spatie/laravel-query-detector package which logs N+1 patterns automatically. For API endpoints, middleware that logs query count per request with thresholds (e.g., alert if > 10 queries) catches N+1 patterns in CI."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "table-partitioning-large-laravel-apps",
+      "slug": "postgresql-table-partitioning-large-laravel-apps",
+      "explanation": "Table partitioning splits a large PostgreSQL table into smaller physical sub-tables (partitions) based on a partition key, while presenting a single logical table to the application. For Laravel apps with tables exceeding 100 million rows, partitioning enables: faster queries (the planner skips partitions that can't contain matching rows), more efficient vacuuming (each partition is vacuumed independently), easier data archival (drop a partition instead of DELETE), and parallel sequential scans across partitions. PostgreSQL supports range, list, and hash partitioning natively since version 10.",
+      "problem_scenario": "Your Laravel SaaS application logs every API request to an api_logs table. After 2 years, the table has 800 million rows and is 200GB. Queries with date filters still scan the entire table. Archiving old data requires DELETE operations that generate billions of dead tuples. VACUUM takes hours. You need to partition by month so queries only scan relevant partitions and old data can be dropped instantly.",
+      "solution_code": {
+        "before": "-- Monolithic table with 800M rows\nCREATE TABLE api_logs (\n    id BIGSERIAL PRIMARY KEY,\n    user_id BIGINT NOT NULL,\n    endpoint TEXT NOT NULL,\n    method VARCHAR(10),\n    status_code INT,\n    response_time_ms INT,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n);\nCREATE INDEX idx_api_logs_created ON api_logs (created_at);\nCREATE INDEX idx_api_logs_user ON api_logs (user_id, created_at);\n\n-- Problem: even with index, query touches enormous table\n-- Archiving 12 months of data:\nDELETE FROM api_logs WHERE created_at < '2024-01-01';\n-- Takes 6+ hours and generates 400M dead tuples",
+        "after": "-- Partitioned table by month\nCREATE TABLE api_logs (\n    id BIGSERIAL,\n    user_id BIGINT NOT NULL,\n    endpoint TEXT NOT NULL,\n    method VARCHAR(10),\n    status_code INT,\n    response_time_ms INT,\n    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()\n) PARTITION BY RANGE (created_at);\n\n-- Create partitions for each month\nCREATE TABLE api_logs_2025_01 PARTITION OF api_logs\n    FOR VALUES FROM ('2025-01-01') TO ('2025-02-01');\nCREATE TABLE api_logs_2025_02 PARTITION OF api_logs\n    FOR VALUES FROM ('2025-02-01') TO ('2025-03-01');\n-- ... create partitions for each month\n\n-- Default partition catches any rows not matching defined ranges\nCREATE TABLE api_logs_default PARTITION OF api_logs DEFAULT;\n\n-- Indexes are created per-partition automatically\nCREATE INDEX ON api_logs (created_at);\nCREATE INDEX ON api_logs (user_id, created_at);\n\n-- Automate partition creation with pg_partman extension:\nCREATE EXTENSION IF NOT EXISTS pg_partman;\nSELECT partman.create_parent(\n    p_parent_table := 'public.api_logs',\n    p_control := 'created_at',\n    p_type := 'native',\n    p_interval := '1 month',\n    p_premake := 3  -- create 3 months ahead\n);\n\n-- Archive old data instantly:\nDROP TABLE api_logs_2023_01;  -- instant! no dead tuples, no vacuum\n\n-- Query only scans relevant partitions (partition pruning):\nEXPLAIN ANALYZE\nSELECT * FROM api_logs\nWHERE created_at >= '2025-03-01' AND created_at < '2025-04-01';\n-- Only scans api_logs_2025_03, skips all other partitions",
+        "language": "sql"
+      },
+      "performance_impact": "Date-range queries scan only relevant monthly partitions (95% I/O reduction), data archival via DROP PARTITION takes milliseconds instead of hours, and vacuum runs independently per partition keeping each one lean",
+      "metrics": [
+        { "metric": "Data archival time (1 year)", "before": "6+ hours (DELETE)", "after": "< 1 second (DROP)" },
+        { "metric": "Monthly query scan size", "before": "200 GB (full table)", "after": "~8 GB (1 partition)" },
+        { "metric": "Vacuum duration", "before": "4+ hours", "after": "~5 min per partition" },
+        { "metric": "Query time (1 month range)", "before": "45 seconds", "after": "800ms" }
+      ],
+      "related_articles": ["postgresql", "laravel", "database", "performance", "devops-and-infrastructure", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "Can I use table partitioning with Laravel migrations?",
+          "answer": "Laravel's Schema builder doesn't support PARTITION BY natively, but you can use DB::statement() in migrations to create partitioned tables. For automated partition management, install the pg_partman extension and call its functions from a scheduled Artisan command. The tpetry/laravel-postgresql-enhanced package also adds partitioning support to Laravel's migration builder."
+        },
+        {
+          "question": "How does partition pruning work?",
+          "answer": "When a query includes a WHERE condition on the partition key (e.g., created_at BETWEEN ...), PostgreSQL's planner checks which partitions could possibly contain matching rows and excludes the rest from the scan plan. This is called partition pruning. It works with =, <, >, BETWEEN, and IN operators. You can verify it by running EXPLAIN and checking which partitions appear in the plan — excluded partitions don't show up at all."
+        }
+      ]
+    },
+    {
+      "technology": "postgresql",
+      "topic": "pg-stat-statements-setup-analysis",
+      "slug": "postgresql-pg-stat-statements-setup-analysis",
+      "explanation": "pg_stat_statements is a PostgreSQL extension that tracks execution statistics for all SQL statements — execution count, total/mean/min/max time, rows returned, and buffer usage. It's the single most important monitoring tool for identifying slow queries, frequently executed queries, and optimization opportunities in Laravel applications. Unlike application-level query logging (which adds overhead and misses queries from background workers), pg_stat_statements captures everything at the database level with minimal performance impact (~2-5% overhead).",
+      "problem_scenario": "Your Laravel application feels slow but you don't know which queries to optimize. Debugbar only shows queries for the current request. Background queue workers, scheduled tasks, and API endpoints each have different query patterns. You need a global view of ALL query performance across the entire application — total time spent, execution frequency, and cache hit ratios.",
+      "solution_code": {
+        "before": "-- No query monitoring — flying blind\n-- Only visibility: Laravel Debugbar (per-request, dev only)\n-- or slow query log (only catches queries above a threshold)\n\n-- postgresql.conf: slow query logging (limited)\nlog_min_duration_statement = 1000  -- only log queries > 1 second\n-- Misses: 10,000 executions of a 50ms query = 500 seconds total!",
+        "after": "-- Step 1: Install pg_stat_statements\n-- postgresql.conf (requires restart)\nshared_preload_libraries = 'pg_stat_statements'\npg_stat_statements.track = all  -- track all statements\npg_stat_statements.max = 10000  -- track top 10K unique queries\n\n-- After restart, create the extension:\nCREATE EXTENSION IF NOT EXISTS pg_stat_statements;\n\n-- Step 2: Find the most time-consuming queries (total time)\nSELECT\n    round(total_exec_time::numeric, 2) AS total_time_ms,\n    calls,\n    round(mean_exec_time::numeric, 2) AS avg_time_ms,\n    round((100 * total_exec_time / sum(total_exec_time) OVER ())::numeric, 2) AS percent_total,\n    query\nFROM pg_stat_statements\nWHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())\nORDER BY total_exec_time DESC\nLIMIT 20;\n\n-- Step 3: Find queries with poor cache hit ratio\nSELECT\n    query,\n    calls,\n    round(mean_exec_time::numeric, 2) AS avg_ms,\n    shared_blks_hit,\n    shared_blks_read,\n    round(\n        shared_blks_hit::numeric /\n        NULLIF(shared_blks_hit + shared_blks_read, 0) * 100, 2\n    ) AS cache_hit_pct\nFROM pg_stat_statements\nWHERE dbid = (SELECT oid FROM pg_database WHERE datname = current_database())\n  AND calls > 100  -- only frequent queries\nORDER BY cache_hit_pct ASC NULLS LAST\nLIMIT 20;\n\n-- Step 4: Reset stats periodically (e.g., after optimization)\nSELECT pg_stat_statements_reset();",
+        "language": "sql"
+      },
+      "performance_impact": "Provides complete visibility into query performance across the entire application, enabling targeted optimization that typically yields 30-50% overall database load reduction by focusing on the top 5 most expensive queries",
+      "metrics": [
+        { "metric": "Query visibility", "before": "Current request only (Debugbar)", "after": "All queries across all processes" },
+        { "metric": "Monitoring overhead", "before": "N/A (no monitoring)", "after": "2-5% CPU" },
+        { "metric": "Typical optimization impact", "before": "Guessing which queries to optimize", "after": "30-50% DB load reduction (top-5 focus)" },
+        { "metric": "Time to identify slow queries", "before": "Hours of log analysis", "after": "Single SQL query" }
+      ],
+      "related_articles": ["postgresql", "database", "performance", "monitoring", "devops-and-infrastructure", "advanced-postgresql-laravel"],
+      "faqs": [
+        {
+          "question": "Does pg_stat_statements affect production performance?",
+          "answer": "The overhead is minimal — typically 2-5% CPU. The extension uses shared memory to store statistics and doesn't log to disk. At 10,000 tracked unique query patterns, it uses about 40MB of shared memory. This is a well-tested extension used by virtually every PostgreSQL deployment in production, including those at major cloud providers (AWS RDS, Google Cloud SQL, Azure all enable it by default)."
+        },
+        {
+          "question": "How do I use pg_stat_statements with Laravel's query builder?",
+          "answer": "pg_stat_statements normalizes queries by replacing literal values with $1, $2, etc. — so User::where('id', 5) and User::where('id', 99) appear as the same query pattern: SELECT * FROM users WHERE id = $1. This means you see aggregate statistics for each query pattern rather than individual executions. To correlate back to Laravel code, search your codebase for the table names and WHERE clauses shown in the stats output."
+        }
+      ]
+    }
+  ]
+}
