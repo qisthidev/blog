@@ -25,6 +25,8 @@ You have access to the following workflows in the `.agents/workflows/` directory
 3.  **Clustering:** `.agents/workflows/seo-03-clustering.md`
 4.  **Programmatic SEO:** `.agents/workflows/seo-04-programmatic.md`
 5.  **Internal Linking:** `.agents/workflows/seo-05-internal-linking.md`
+6.  **Content Generation:** `.agents/workflows/seo-06-content-generation.md`
+7.  **Daily pSEO Automation:** `.agents/workflows/seo-07-daily-pseo.md`
 
 When a user asks to execute a phase of the SEO sprint, use the `view_file` tool to read the relevant workflow and follow its instructions sequentially.
 
