@@ -241,6 +241,7 @@ const structuredData = [
           ></script>
           <script type="text/partytown" is:inline define:vars={{ gaId: SITE.googleAnalyticsId }}>
             window.dataLayer = window.dataLayer || [];
+            // eslint-disable-next-line prefer-rest-params
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', gaId);
