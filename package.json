@@ -12,7 +12,8 @@
     "format": "prettier --write .",
     "lint": "eslint .",
     "generate:pseo": "tsx scripts/generate-pseo.ts --model all",
-    "validate:pseo": "tsx scripts/validate-pseo.ts"
+    "validate:pseo": "tsx scripts/validate-pseo.ts",
+    "automate:pseo": "tsx scripts/automate-pseo.ts"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.14",
