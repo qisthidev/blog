@@ -15,8 +15,15 @@ import type {
 const args = process.argv.slice(2);
 
 function getArg(name: string): string | undefined {
-  const arg = args.find(a => a.startsWith(`--${name}=`));
-  return arg?.split("=").slice(1).join("=");
+  // Support --name=value
+  const eqArg = args.find(a => a.startsWith(`--${name}=`));
+  if (eqArg) return eqArg.split("=").slice(1).join("=");
+  // Support --name value (space-separated)
+  const idx = args.indexOf(`--${name}`);
+  if (idx !== -1 && idx + 1 < args.length && !args[idx + 1].startsWith("--")) {
+    return args[idx + 1];
+  }
+  return undefined;
 }
 
 const query = getArg("query");
