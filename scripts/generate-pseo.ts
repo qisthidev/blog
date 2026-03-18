@@ -427,19 +427,32 @@ function generateFromDataset(filePath: string): { generated: string[]; hub: stri
 }
 
 // --- Run ---
-const models = modelArg === "all" ? ["errors", "performance"] : [modelArg];
+// Discover all JSON dataset files in the PSEO directory
+const allFiles = fs.readdirSync(PSEO_DIR).filter(f => f.endsWith(".json"));
+const targetModels = modelArg === "all" ? ["errors", "performance"] : [modelArg];
 
 let totalGenerated = 0;
 
-for (const model of models) {
-  const filePath = path.join(PSEO_DIR, `${model}.json`);
-  if (!fs.existsSync(filePath)) {
-    console.error(`Dataset not found: ${filePath}`);
-    process.exit(1);
+for (const file of allFiles) {
+  const filePath = path.join(PSEO_DIR, file);
+  const raw = fs.readFileSync(filePath, "utf-8");
+  let dataset: PSEODataset<any>;
+  try {
+    dataset = JSON.parse(raw);
+  } catch {
+    console.warn(`Skipping invalid JSON: ${file}`);
+    continue;
   }
-  console.log(`\n--- Generating from: ${model}.json ---`);
+  if (!targetModels.includes(dataset.model)) continue;
+
+  console.log(`\n--- Generating from: ${file} (hub: ${dataset.hub}) ---`);
   const { generated } = generateFromDataset(filePath);
   totalGenerated += generated.length;
+}
+
+if (totalGenerated === 0) {
+  console.error(`No datasets found for model(s): ${targetModels.join(", ")}`);
+  process.exit(1);
 }
 
 console.log(`\n${dryRun ? "[DRY RUN] " : ""}Total: ${totalGenerated} files`);
