@@ -1,0 +1,20 @@
+SQLSTATE[57014] query canceled due to statement timeout Laravel PostgreSQL long running query fix
+SQLSTATE[53300] too many connections sorry already too many clients Laravel PostgreSQL pgbouncer connection pool
+SQLSTATE[40001] could not serialize access due to concurrent update deadlock Laravel PostgreSQL transaction retry
+SQLSTATE[23505] duplicate key value violates unique constraint Laravel PostgreSQL upsert updateOrCreate
+SQLSTATE[42P01] relation does not exist undefined table Laravel PostgreSQL migration fresh
+SQLSTATE[22P02] invalid input syntax for type uuid integer Laravel PostgreSQL cast validation
+SQLSTATE[55P03] could not obtain lock on row Laravel PostgreSQL SELECT FOR UPDATE NOWAIT skip locked
+SQLSTATE[08006] could not connect to server connection refused Laravel PostgreSQL timeout docker
+SQLSTATE[25P02] current transaction is aborted commands ignored until end of transaction block Laravel PostgreSQL
+SQLSTATE[42703] column does not exist undefined column Laravel PostgreSQL migration schema cache
+SQLSTATE[23503] insert or update violates foreign key constraint Laravel PostgreSQL relationship cascade
+SQLSTATE[HY000] General error 7 no connection to the server Laravel PostgreSQL lost connection
+SQLSTATE[42P07] relation already exists Laravel PostgreSQL migration table exists if not exists
+SQLSTATE[22001] value too long for type character varying Laravel PostgreSQL string truncation validation
+SQLSTATE[42601] syntax error at or near Laravel PostgreSQL raw query binding placeholder
+SQLSTATE[08P01] protocol error unexpected message type Laravel PostgreSQL pgbouncer transaction pooling
+SQLSTATE[3D000] database does not exist Laravel PostgreSQL create database tenant
+SQLSTATE[28P01] password authentication failed for user Laravel PostgreSQL connection credentials env
+SQLSTATE[42883] function does not exist Laravel PostgreSQL raw DB extension uuid_generate_v4
+SQLSTATE[22003] numeric value out of range integer overflow Laravel PostgreSQL bigint migration
