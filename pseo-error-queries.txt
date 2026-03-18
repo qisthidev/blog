@@ -1,6 +1,6 @@
 SQLSTATE[57014] query canceled due to statement timeout Laravel PostgreSQL long running query fix
 SQLSTATE[53300] too many connections sorry already too many clients Laravel PostgreSQL pgbouncer connection pool
-SQLSTATE[40001] could not serialize access due to concurrent update deadlock Laravel PostgreSQL transaction retry
+SQLSTATE[40001] could not serialize access due to concurrent update Laravel PostgreSQL transaction retry
 SQLSTATE[23505] duplicate key value violates unique constraint Laravel PostgreSQL upsert updateOrCreate
 SQLSTATE[42P01] relation does not exist undefined table Laravel PostgreSQL migration fresh
 SQLSTATE[22P02] invalid input syntax for type uuid Laravel PostgreSQL cast validation
