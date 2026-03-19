@@ -27,6 +27,8 @@ Setting up the perfect infrastructure for Laravel Octane can make or break your 
 
 > **📋 Related Articles:** This infrastructure setup pairs perfectly with our [Laravel Octane Mastery](/tags/series-laravel-octane-mastery) series and [Alpine Linux Migration](/blog/docker-alpine-migration) experience.
 
+> **🛠 Troubleshooting Follow-up:** If your server is already deployed and you are chasing a release-time outage, start with [Laravel Octane 502 After Deploy from Stale Workers](/blog/laravel-infrastructure-troubleshooting/laravel-octane-502-bad-gateway-stale-workers-socket), [Laravel PHP-FPM pm.max_children Exhausted in Production](/blog/laravel-infrastructure-troubleshooting/laravel-php-fpm-pm-max-children-production), and the broader [Laravel Infrastructure Troubleshooting Guide](/blog/laravel-infrastructure-troubleshooting/laravel-infrastructure-troubleshooting-guide).
+
 ## 1. Initial Server Setup and Security
 
 ### Creating Your DigitalOcean Droplet

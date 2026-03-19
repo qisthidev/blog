@@ -1,0 +1,959 @@
+{
+  "model": "errors",
+  "hub": "laravel-error-guide",
+  "hub_title": "Laravel Error Guide: PostgreSQL SQLSTATE Errors",
+  "hub_description": "Comprehensive troubleshooting guide for PostgreSQL SQLSTATE errors in Laravel applications — from connection failures and constraint violations to transaction conflicts and query timeouts. Production-tested fixes with real code examples.",
+  "hub_tags": [
+    "laravel",
+    "postgresql",
+    "error-handling",
+    "database"
+  ],
+  "entries": [
+    {
+      "error_message": "SQLSTATE[57014] Query Canceled Due to Statement Timeout",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-57014-statement-timeout-query-canceled",
+      "root_cause": "PostgreSQL cancels queries that exceed the configured statement_timeout value. This timeout is a server-side safeguard that kills long-running queries to prevent a single runaway query from monopolizing database resources, locking tables indefinitely, or exhausting connection pool slots. In Laravel applications, this commonly surfaces during complex Eloquent queries with multiple joins, unoptimized WHERE clauses on large tables, or when running database-intensive jobs without adjusting the timeout. The default statement_timeout is 0 (disabled) on most PostgreSQL installations, but production environments typically enforce 30-60 second limits through pgbouncer, RDS parameter groups, or postgresql.conf.",
+      "symptoms": [
+        "SQLSTATE[57014]: Query canceled: ERROR: canceling statement due to statement timeout in Laravel logs",
+        "Eloquent queries that work in development but fail in production under load",
+        "Background jobs or artisan commands failing intermittently on large datasets",
+        "Slow API endpoints that randomly return 500 errors during peak traffic",
+        "Database migration commands timing out on large tables with millions of rows"
+      ],
+      "fix_steps": [
+        "Check the current statement_timeout: run DB::select(\"SHOW statement_timeout\") to see the active limit for your connection",
+        "Identify the slow query: enable query logging with DB::enableQueryLog() or use Laravel Debugbar to find queries exceeding the timeout threshold",
+        "Optimize the query: add database indexes, reduce joins, use chunking for large datasets with Model::chunk(1000, fn) instead of Model::all()",
+        "For migrations on large tables, temporarily increase the timeout: DB::statement('SET statement_timeout = 0') before the migration, reset after",
+        "For long-running jobs, configure a dedicated database connection in config/database.php with a higher statement_timeout via the 'options' key",
+        "Add query-level timeout control: use DB::statement(\"SET LOCAL statement_timeout = '120s'\") inside a transaction for specific operations"
+      ],
+      "example_code": {
+        "before": "// Problem: Eloquent query times out on large table\n$users = User::where('status', 'active')\n    ->whereHas('orders', function ($q) {\n        $q->where('total', '>', 100);\n    })\n    ->with('orders.items.product')\n    ->get(); // SQLSTATE[57014] on 500K+ rows",
+        "after": "// Fix 1: Optimize with chunking and targeted eager loading\nUser::where('status', 'active')\n    ->whereHas('orders', function ($q) {\n        $q->where('total', '>', 100);\n    })\n    ->with(['orders' => fn ($q) => $q->where('total', '>', 100)->select('id', 'user_id', 'total')])\n    ->chunk(500, function ($users) {\n        foreach ($users as $user) {\n            ProcessUserExport::dispatch($user);\n        }\n    });\n\n// Fix 2: Dedicated connection for long queries\n// config/database.php\n'pgsql_long' => [\n    'driver' => 'pgsql',\n    'host' => env('DB_HOST'),\n    'database' => env('DB_DATABASE'),\n    'username' => env('DB_USERNAME'),\n    'password' => env('DB_PASSWORD'),\n    'options' => [\n        PDO::ATTR_TIMEOUT => 300,\n    ],\n    'search_path' => 'public',\n],",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "performance",
+        "query-optimization",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "How do I set statement_timeout per query in Laravel PostgreSQL?",
+          "answer": "Use DB::statement(\"SET LOCAL statement_timeout = '60s'\") inside a DB::transaction() block. The LOCAL keyword ensures the timeout only applies to the current transaction, not the entire connection. This is safer than connection-level settings because it automatically resets when the transaction completes. For Eloquent queries outside transactions, use DB::statement(\"SET statement_timeout = '60s'\") before the query and reset it after with DB::statement(\"RESET statement_timeout\")."
+        },
+        {
+          "question": "Why does my query work locally but timeout in production PostgreSQL?",
+          "answer": "Production databases typically have stricter statement_timeout settings configured via postgresql.conf, RDS parameter groups, or PgBouncer. Local PostgreSQL usually has statement_timeout set to 0 (unlimited). Additionally, production databases handle concurrent connections which cause lock contention, making queries slower. Your local database likely has less data, warmer caches, and no competing queries. Always test with production-sized datasets and concurrent load before deploying query-heavy features."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[53300] Too Many Connections in PostgreSQL with Laravel",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-53300-too-many-connections-pgbouncer",
+      "root_cause": "PostgreSQL has a hard limit on simultaneous connections defined by max_connections in postgresql.conf (default: 100). When all connection slots are occupied — by web workers, queue workers, cron jobs, and other services — new connection attempts fail with SQLSTATE[53300]. In Laravel, each PHP-FPM worker, queue worker, and scheduled task opens its own database connection. With Octane or Swoole, connections persist across requests, which can exhaust the pool if not managed properly. The fix is implementing connection pooling with PgBouncer, which multiplexes hundreds of application connections over a small number of actual PostgreSQL connections.",
+      "symptoms": [
+        "SQLSTATE[53300]: too many connections: FATAL: sorry, too many clients already",
+        "Intermittent database connection failures during traffic spikes",
+        "Queue workers failing to start with connection refused errors",
+        "New deployments causing connection storms when all workers restart simultaneously",
+        "PostgreSQL logs showing FATAL: remaining connection slots are reserved for superuser connections"
+      ],
+      "fix_steps": [
+        "Check current connections: run SELECT count(*), state FROM pg_stat_activity GROUP BY state to see how many connections are active vs idle",
+        "Identify connection consumers: check the count of PHP-FPM workers (ps aux | grep php-fpm), queue workers, and any other services connecting to PostgreSQL",
+        "Install PgBouncer as a connection pooler: configure it to sit between Laravel and PostgreSQL, listening on port 6432",
+        "Configure PgBouncer pool_mode: use 'transaction' mode for Laravel (releases connections after each transaction) — this can reduce 200 app connections to 20 PostgreSQL connections",
+        "Update Laravel .env to point to PgBouncer: set DB_PORT=6432 instead of 5432",
+        "Add connection lifetime limits: set PGBOUNCER_MAX_CLIENT_CONN=200, PGBOUNCER_DEFAULT_POOL_SIZE=20, and configure server_idle_timeout=600 to reclaim idle connections"
+      ],
+      "example_code": {
+        "before": "// .env — connecting directly to PostgreSQL (no pooling)\nDB_CONNECTION=pgsql\nDB_HOST=127.0.0.1\nDB_PORT=5432\nDB_DATABASE=myapp\nDB_USERNAME=myapp\nDB_PASSWORD=secret\n\n// With 50 PHP-FPM workers + 10 queue workers = 60 connections\n// Add scheduled tasks, migrations, tinker = easily 80+ connections\n// Traffic spike doubles FPM workers = 120 connections > max_connections(100)",
+        "after": "// .env — route through PgBouncer\nDB_CONNECTION=pgsql\nDB_HOST=127.0.0.1\nDB_PORT=6432  // PgBouncer port\nDB_DATABASE=myapp\nDB_USERNAME=myapp\nDB_PASSWORD=secret\n\n// pgbouncer.ini\n// [databases]\n// myapp = host=127.0.0.1 port=5432 dbname=myapp\n//\n// [pgbouncer]\n// listen_port = 6432\n// pool_mode = transaction\n// max_client_conn = 400\n// default_pool_size = 25\n// min_pool_size = 5\n// reserve_pool_size = 5\n// server_idle_timeout = 600\n\n// config/database.php — disable persistent connections with PgBouncer\n'pgsql' => [\n    'driver' => 'pgsql',\n    'host' => env('DB_HOST'),\n    'port' => env('DB_PORT', '6432'),\n    'database' => env('DB_DATABASE'),\n    'username' => env('DB_USERNAME'),\n    'password' => env('DB_PASSWORD'),\n    'options' => [\n        PDO::ATTR_PERSISTENT => false, // important for PgBouncer\n    ],\n],",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "pgbouncer",
+        "connection-pooling",
+        "devops-and-infrastructure",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Should I use PgBouncer transaction or session mode with Laravel?",
+          "answer": "Use transaction mode for Laravel applications. In transaction mode, PgBouncer assigns a server connection only for the duration of a transaction, then returns it to the pool. This gives the best connection multiplexing ratio. Session mode keeps the connection for the entire client session (PHP request), which provides less pooling benefit. The only caveat with transaction mode is that prepared statements, SET commands, and LISTEN/NOTIFY don't work across transactions — but Laravel's query builder doesn't rely on these features by default."
+        },
+        {
+          "question": "How do I monitor PostgreSQL connection usage in Laravel?",
+          "answer": "Run this query periodically: SELECT count(*) as total, state, usename, application_name FROM pg_stat_activity GROUP BY state, usename, application_name ORDER BY total DESC. This shows you exactly which applications are consuming connections and whether they're active or idle. In Laravel, you can create a health check endpoint that reports this data. Also monitor PgBouncer stats via SHOW POOLS and SHOW STATS commands on the PgBouncer admin console. Set up alerts when connection usage exceeds 80% of max_connections."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[40001] Serialization Failure Due to Concurrent Update",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-40001-serialization-failure-concurrent-update",
+      "root_cause": "PostgreSQL uses Multi-Version Concurrency Control (MVCC) to handle concurrent transactions. When two transactions attempt to modify the same row simultaneously under SERIALIZABLE or REPEATABLE READ isolation levels, PostgreSQL detects a serialization conflict and aborts one transaction with SQLSTATE[40001]. This also occurs with explicit row locks (SELECT FOR UPDATE) when concurrent updates create a dependency cycle. In Laravel, this commonly happens during high-concurrency operations like inventory decrements, counter updates, or any read-modify-write pattern where multiple requests target the same database rows simultaneously.",
+      "symptoms": [
+        "SQLSTATE[40001]: Serialization failure: ERROR: could not serialize access due to concurrent update",
+        "Random transaction failures during high-traffic checkout or booking flows",
+        "Database errors that only appear under concurrent load testing but never in development",
+        "Partial data updates where some operations succeed and others silently fail",
+        "Deadlock-like symptoms where transactions abort unpredictably under peak traffic"
+      ],
+      "fix_steps": [
+        "Identify the conflicting transaction: check PostgreSQL logs for the full error message which includes the conflicting transaction ID and table name",
+        "Implement automatic retry logic: wrap the critical operation in a retry loop that catches SQLSTATE[40001] and re-executes the transaction",
+        "Use Laravel's DB::transaction with a retry count: DB::transaction(fn() => ..., 5) to automatically retry up to 5 times on deadlock/serialization failures",
+        "Consider using advisory locks for application-level serialization: DB::select('SELECT pg_advisory_xact_lock(?)', [$resourceId]) within the transaction",
+        "For simple counter updates, use atomic SQL: $model->increment('quantity') instead of read-modify-write patterns which are inherently race-prone",
+        "Lower the isolation level if SERIALIZABLE is not strictly required — READ COMMITTED (PostgreSQL default) allows more concurrency with fewer serialization conflicts"
+      ],
+      "example_code": {
+        "before": "// UNSAFE: read-modify-write race condition\nDB::transaction(function () use ($productId, $qty) {\n    $product = Product::find($productId);\n    if ($product->stock >= $qty) {\n        $product->stock -= $qty;\n        $product->save();\n        // SQLSTATE[40001] if another transaction modified stock\n    }\n});",
+        "after": "// SAFE: Retry logic + atomic operations\nuse Illuminate\\Support\\Facades\\DB;\nuse Illuminate\\Database\\QueryException;\n\nfunction withRetry(callable $operation, int $maxRetries = 5): mixed\n{\n    for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {\n        try {\n            return DB::transaction($operation);\n        } catch (QueryException $e) {\n            if ($e->getCode() === '40001' && $attempt < $maxRetries) {\n                usleep($attempt * 50000); // exponential backoff\n                continue;\n            }\n            throw $e;\n        }\n    }\n}\n\n// Usage with atomic decrement\nwithRetry(function () use ($productId, $qty) {\n    $updated = DB::table('products')\n        ->where('id', $productId)\n        ->where('stock', '>=', $qty)\n        ->decrement('stock', $qty);\n\n    if (!$updated) {\n        throw new InsufficientStockException();\n    }\n\n    Order::create(['product_id' => $productId, 'quantity' => $qty]);\n});",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "concurrency",
+        "transactions",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Does Laravel automatically retry on SQLSTATE[40001] serialization failure?",
+          "answer": "Yes, partially. Laravel's DB::transaction() method accepts a second parameter for retry attempts: DB::transaction(fn() => ..., 5). However, this only retries on deadlocks (SQLSTATE[40P01]), not serialization failures (SQLSTATE[40001]) by default. To handle serialization failures, you need custom retry logic that catches QueryException and checks for error code 40001. The withRetry wrapper pattern shown above handles both deadlocks and serialization failures with exponential backoff, which is essential for high-concurrency PostgreSQL applications."
+        },
+        {
+          "question": "What is the difference between SQLSTATE 40001 and 40P01 in PostgreSQL Laravel?",
+          "answer": "SQLSTATE[40001] is a serialization failure — PostgreSQL detected that concurrent transactions would produce inconsistent results if both committed, so it aborts one. SQLSTATE[40P01] is a deadlock — two transactions are waiting for each other's locks in a circular dependency. Both require retry logic, but they have different causes. Serialization failures are more common with SERIALIZABLE isolation and can be reduced by lowering to READ COMMITTED. Deadlocks are caused by lock ordering issues and can be reduced by accessing tables and rows in a consistent order across all transactions."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "SQLSTATE[23505] Duplicate Key Violates Unique Constraint",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-23505-duplicate-key-unique-constraint-upsert",
+      "root_cause": "PostgreSQL enforces unique constraints at the database level, rejecting any INSERT that would create a duplicate value in a column or combination of columns with a UNIQUE index. In Laravel, this error surfaces when using create(), insert(), or firstOrCreate() in concurrent scenarios where two requests simultaneously check for existence and then both attempt to insert. The race window between the SELECT check and the INSERT is the root cause — neither request sees the other's uncommitted row. Laravel's updateOrCreate() without proper database-level handling is equally vulnerable to this race condition.",
+      "symptoms": [
+        "SQLSTATE[23505]: Unique violation: ERROR: duplicate key value violates unique constraint",
+        "Intermittent failures in firstOrCreate() or updateOrCreate() under concurrent requests",
+        "User registration failing with duplicate email errors despite client-side validation",
+        "Batch import jobs failing partway through on duplicate records",
+        "Race conditions in API endpoints that create resources with unique slugs or codes"
+      ],
+      "fix_steps": [
+        "Identify the constraint: the error message includes the constraint name — find it with \\d+ tablename in psql to see which columns are involved",
+        "Use PostgreSQL-native upsert via Laravel's upsert() method: Model::upsert($data, ['unique_column'], ['columns_to_update'])",
+        "For firstOrCreate race conditions, wrap in a try-catch that handles 23505: catch the UniqueConstraintViolationException (Laravel 10+) and retry with a find",
+        "Add a unique index at the database level if not already present — never rely solely on application-level uniqueness checks under concurrent load",
+        "For bulk inserts, use insertOrIgnore() when you want to silently skip duplicates, or upsert() when you want to update existing rows",
+        "Consider using advisory locks for complex multi-step creation flows: DB::select('SELECT pg_advisory_xact_lock(?)', [crc32($uniqueValue)])"
+      ],
+      "example_code": {
+        "before": "// RACE CONDITION: two requests can pass the check simultaneously\n$user = User::where('email', $email)->first();\nif (!$user) {\n    $user = User::create(['email' => $email, 'name' => $name]);\n    // SQLSTATE[23505] if another request inserted between check and create\n}",
+        "after": "// SAFE: Use upsert or catch the violation\nuse Illuminate\\Database\\UniqueConstraintViolationException;\n\n// Option 1: upsert (INSERT ... ON CONFLICT)\nUser::upsert(\n    ['email' => $email, 'name' => $name],\n    ['email'],           // unique columns\n    ['name']             // columns to update on conflict\n);\n\n// Option 2: firstOrCreate with retry on race condition\ntry {\n    $user = User::firstOrCreate(\n        ['email' => $email],\n        ['name' => $name]\n    );\n} catch (UniqueConstraintViolationException) {\n    // Another request won the race — just fetch the existing row\n    $user = User::where('email', $email)->firstOrFail();\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "database",
+        "eloquent",
+        "concurrency",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "What is the difference between firstOrCreate and upsert in Laravel PostgreSQL?",
+          "answer": "firstOrCreate() performs a SELECT then conditionally an INSERT — two separate queries with a race window between them. Under concurrent requests, both can pass the SELECT check and both attempt to INSERT, causing SQLSTATE[23505]. upsert() uses PostgreSQL's INSERT ... ON CONFLICT DO UPDATE syntax, which is a single atomic SQL statement — the database handles the race condition internally. Use upsert() for high-concurrency scenarios and firstOrCreate() for low-concurrency cases where the simpler API is preferred."
+        },
+        {
+          "question": "How do I handle bulk inserts with potential duplicates in Laravel PostgreSQL?",
+          "answer": "Use Model::upsert() for bulk operations where you want to update existing rows on conflict, or Model::insertOrIgnore() when you want to silently skip duplicates. Both generate PostgreSQL-native ON CONFLICT clauses. For large datasets (10K+ rows), chunk the upsert into batches of 500-1000 to avoid memory issues and long-running transactions. Example: collect($records)->chunk(500)->each(fn ($chunk) => Model::upsert($chunk->toArray(), ['unique_col'], ['update_col']))."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[42P01] Relation Does Not Exist (Undefined Table)",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-42p01-relation-does-not-exist-migration",
+      "root_cause": "PostgreSQL throws SQLSTATE[42P01] when a query references a table or view that doesn't exist in the current search_path schema. In Laravel, this commonly occurs when migrations haven't been run, when model table names don't match the actual database tables, when using multi-schema setups (e.g., multi-tenant with PostgreSQL schemas) without configuring the search_path, or when the schema cache is stale after a migration rollback. Unlike MySQL, PostgreSQL is case-sensitive for quoted identifiers — a table created as \"Users\" must be queried as \"Users\", not users.",
+      "symptoms": [
+        "SQLSTATE[42P01]: Undefined table: ERROR: relation \"table_name\" does not exist",
+        "Fresh deployments where migrations haven't run but seeders or jobs reference tables",
+        "Multi-tenant applications where queries hit the wrong PostgreSQL schema",
+        "Tests failing after migration rollback because tables were dropped but referenced in code",
+        "API errors immediately after deploying with new migrations that haven't been applied yet"
+      ],
+      "fix_steps": [
+        "Verify the table exists: run \\dt in psql or DB::select(\"SELECT tablename FROM pg_tables WHERE schemaname = 'public'\") to list all tables",
+        "Check your migration status: run php artisan migrate:status to see if all migrations have been applied",
+        "Verify the model's table name: ensure your Eloquent model's $table property matches the actual PostgreSQL table name (case-sensitive if quoted)",
+        "For multi-schema setups, check the search_path: run DB::select('SHOW search_path') and ensure it includes the schema your table lives in",
+        "Clear schema cache: run php artisan schema:dump --prune if you use schema caching, and ensure the dump includes all required tables",
+        "For deployment, ensure migrations run before the application starts serving traffic — use deployment scripts or Docker entrypoint commands"
+      ],
+      "example_code": {
+        "before": "// Error: model references a table that hasn't been migrated\nclass Analytics extends Model\n{\n    protected $table = 'analytics_events'; // doesn't exist yet\n}\n\n// Or: multi-tenant schema not set\n$users = DB::table('users')->get();\n// SQLSTATE[42P01] because 'users' exists in 'tenant_1' schema, not 'public'",
+        "after": "// Fix 1: Ensure migrations are up to date\n// php artisan migrate --force\n\n// Fix 2: Set schema search_path for multi-tenant\nconfig(['database.connections.pgsql.search_path' => \"tenant_{$tenantId},public\"]);\nDB::purge('pgsql'); // reset connection with new search_path\n$users = DB::table('users')->get(); // now searches tenant schema first\n\n// Fix 3: Defensive check in seeders/commands\nuse Illuminate\\Support\\Facades\\Schema;\n\nif (Schema::hasTable('analytics_events')) {\n    // safe to query\n    $events = AnalyticsEvent::all();\n} else {\n    $this->warn('Table analytics_events not found — run migrations first');\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "migrations",
+        "multi-tenancy",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "How does PostgreSQL search_path affect Laravel table lookups?",
+          "answer": "PostgreSQL's search_path is a comma-separated list of schemas that PostgreSQL searches when a table name is not schema-qualified. The default is '\"$user\", public'. When Laravel queries DB::table('users'), PostgreSQL looks for the 'users' table in each schema listed in search_path, in order. For multi-tenant apps using PostgreSQL schemas, you must set the search_path to include the tenant's schema before queries execute. In Laravel, configure this via the 'search_path' key in config/database.php or dynamically with DB::statement(\"SET search_path TO tenant_1, public\")."
+        },
+        {
+          "question": "Why does my Laravel migration work but the table shows as not existing afterward?",
+          "answer": "This usually happens when migrations run in a different schema than your application queries. Check if your migration connection uses a different search_path than your application connection. Also verify that php artisan migrate:status shows the migration as 'Ran'. If using schema:dump, the dump may not include the latest migration — regenerate it with php artisan schema:dump --prune. Another common cause is running migrations on a different database than your app connects to — double-check DB_DATABASE in your .env file."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[22P02] Invalid Input Syntax for Type UUID",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-22p02-invalid-input-syntax-uuid-cast",
+      "root_cause": "PostgreSQL strictly enforces data types, unlike MySQL which silently coerces values. When a query passes a non-UUID string to a column typed as uuid, PostgreSQL rejects it with SQLSTATE[22P02]. In Laravel, this commonly occurs when route model binding receives a non-UUID segment (like 'favicon.ico' or a slug), when API endpoints receive malformed IDs from clients, or when relationships reference a uuid column with an integer foreign key. Laravel's automatic route model binding doesn't validate the format before querying, so any string in the URL segment gets passed directly to a WHERE uuid_column = ? clause.",
+      "symptoms": [
+        "SQLSTATE[22P02]: Invalid text representation: ERROR: invalid input syntax for type uuid",
+        "Route model binding returning 500 errors for bot requests or malformed URLs",
+        "API endpoints crashing when clients send integer IDs instead of UUIDs",
+        "Relationship queries failing when mixing integer and UUID primary keys across models",
+        "Search or filter features crashing when user input is passed to UUID column queries"
+      ],
+      "fix_steps": [
+        "Add UUID format validation to incoming requests: use the 'uuid' validation rule in your FormRequest for any parameter that maps to a UUID column",
+        "For route model binding, add a route pattern constraint: Route::get('/users/{user}', ...)->whereUuid('user')",
+        "Create a middleware or global route pattern: Route::pattern('user', '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}')",
+        "Use Laravel's custom casts to validate UUID format at the model level with a custom cast class",
+        "Add try-catch around queries that accept user-supplied UUID values to return a proper 404 or 422 instead of a 500 error",
+        "For mixed integer/UUID systems, ensure foreign key columns match the referenced primary key type exactly in your migrations"
+      ],
+      "example_code": {
+        "before": "// Problem: Route model binding with UUID primary key\n// GET /api/users/not-a-uuid -> SQLSTATE[22P02]\nRoute::get('/api/users/{user}', function (User $user) {\n    return $user;\n});\n\n// Any non-UUID URL segment triggers the error:\n// /api/users/favicon.ico\n// /api/users/123\n// /api/users/admin",
+        "after": "// Fix 1: Route constraint\nRoute::get('/api/users/{user}', function (User $user) {\n    return $user;\n})->whereUuid('user');\n\n// Fix 2: Global pattern in RouteServiceProvider\npublic function boot(): void\n{\n    Route::pattern('user', '[0-9a-f-]{36}');\n}\n\n// Fix 3: Validation in FormRequest\nclass ShowUserRequest extends FormRequest\n{\n    public function rules(): array\n    {\n        return [\n            'user' => ['required', 'uuid'],\n        ];\n    }\n}\n\n// Fix 4: Model-level resolution with 404\nclass User extends Model\n{\n    public function resolveRouteBinding($value, $field = null): ?self\n    {\n        if (!Str::isUuid($value)) {\n            abort(404);\n        }\n        return parent::resolveRouteBinding($value, $field);\n    }\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "uuid",
+        "validation",
+        "routing",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "How do I use UUID primary keys in Laravel with PostgreSQL?",
+          "answer": "In your migration, use $table->uuid('id')->primary() instead of $table->id(). In your model, add use HasUuids (Laravel 9.30+) or manually set $keyType = 'string', $incrementing = false, and override the boot method to generate UUIDs with Str::uuid(). For PostgreSQL, the native uuid type is more efficient than storing UUIDs as varchar(36). You can also use uuid_generate_v4() as a database default by adding ->default(DB::raw('gen_random_uuid()')) to the migration column definition."
+        },
+        {
+          "question": "Why does PostgreSQL reject my UUID but MySQL accepts it?",
+          "answer": "MySQL's default storage engine (InnoDB) stores UUIDs as VARCHAR or BINARY and performs implicit type coercion — it will attempt to use any string value in a comparison without validating the format. PostgreSQL has a native uuid type with strict format validation. Any string that doesn't match the UUID format (xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx) is rejected. This strict typing catches bugs earlier but requires proper input validation in your application. Always validate UUID format before it reaches the database query to provide user-friendly error messages."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[22P02] Invalid Input Syntax for Integer",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-22p02-invalid-input-syntax-integer-cast",
+      "root_cause": "PostgreSQL strictly enforces integer type constraints and refuses to implicitly cast string values to integers, unlike MySQL which performs silent coercion. When Laravel passes a string value (from request input, route parameters, or relationship keys) to an integer column in PostgreSQL, the database rejects the query with SQLSTATE[22P02]. This commonly occurs with route model binding when URL segments contain non-numeric characters, search filters where user input is passed directly to integer column queries, and when Eloquent casts aren't properly configured on models with integer foreign keys.",
+      "symptoms": [
+        "SQLSTATE[22P02]: Invalid text representation: ERROR: invalid input syntax for type integer",
+        "API endpoints returning 500 errors when string parameters are passed to integer column filters",
+        "Route model binding crashing for URLs with non-numeric segments targeting integer primary keys",
+        "Eloquent where clauses failing when unvalidated request input reaches integer columns",
+        "Batch operations breaking when CSV import data contains non-numeric values in integer fields"
+      ],
+      "fix_steps": [
+        "Validate all request inputs before they reach the database: use 'integer' validation rule in FormRequest classes for any parameter mapped to an integer column",
+        "Cast route parameters explicitly: use Route::get('/posts/{post}', ...)->whereNumber('post') to enforce numeric constraints at the routing level",
+        "Configure Eloquent casts on your model: protected $casts = ['quantity' => 'integer', 'price' => 'integer'] to ensure type safety",
+        "Sanitize filter inputs: cast user input with (int) before passing to queries, e.g., Model::where('id', (int) $request->id)",
+        "Add a global exception handler for QueryException to return 422 instead of 500 for type casting errors",
+        "Use form request validation consistently: never pass raw request()->input() directly into Eloquent where() clauses without validation"
+      ],
+      "example_code": {
+        "before": "// Problem: unvalidated input passed to integer column\n$posts = Post::where('category_id', $request->input('category'))\n    ->get();\n// If category = 'all' or 'abc' -> SQLSTATE[22P02]\n\n// Or route model binding with integer PK\nRoute::get('/posts/{post}', function (Post $post) {\n    return $post;\n});\n// GET /posts/latest -> SQLSTATE[22P02]",
+        "after": "// Fix 1: Validate in FormRequest\nclass ListPostsRequest extends FormRequest\n{\n    public function rules(): array\n    {\n        return [\n            'category' => ['nullable', 'integer', 'exists:categories,id'],\n        ];\n    }\n}\n\npublic function index(ListPostsRequest $request)\n{\n    $query = Post::query();\n    if ($request->validated('category')) {\n        $query->where('category_id', $request->validated('category'));\n    }\n    return $query->paginate();\n}\n\n// Fix 2: Route constraint\nRoute::get('/posts/{post}', function (Post $post) {\n    return $post;\n})->whereNumber('post');\n\n// Fix 3: Model-level resolution\nclass Post extends Model\n{\n    public function resolveRouteBinding($value, $field = null): ?self\n    {\n        if (!is_numeric($value)) {\n            abort(404);\n        }\n        return parent::resolveRouteBinding($value, $field);\n    }\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "validation",
+        "type-safety",
+        "eloquent",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Why does MySQL accept string values in integer columns but PostgreSQL does not?",
+          "answer": "MySQL performs implicit type coercion — when you pass the string 'abc' to an integer column in a WHERE clause, MySQL silently converts it to 0 and proceeds with the query. PostgreSQL follows the SQL standard more strictly and refuses to perform this implicit conversion, throwing SQLSTATE[22P02] instead. This strict behavior is actually beneficial because it catches bugs and potential SQL injection vectors that MySQL would silently accept. The fix is to validate and cast all inputs before they reach the query layer, which is good practice regardless of which database you use."
+        },
+        {
+          "question": "How do I configure Laravel Eloquent casts for PostgreSQL integer columns?",
+          "answer": "Define a $casts property on your Eloquent model: protected $casts = ['price' => 'integer', 'quantity' => 'integer', 'is_active' => 'boolean']. This ensures that when Eloquent reads values from the database or sets values on the model, they are automatically cast to the correct PHP type. For form input, also use FormRequest validation rules ('integer', 'numeric') to reject invalid values before they reach the model. Combining both approaches — validation at the request layer and casting at the model layer — provides defense-in-depth against type errors."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[55P03] Could Not Obtain Lock on Row",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-55p03-could-not-obtain-lock-select-for-update-nowait",
+      "root_cause": "PostgreSQL throws SQLSTATE[55P03] when a SELECT FOR UPDATE NOWAIT or SELECT FOR UPDATE SKIP LOCKED query cannot immediately acquire a row-level lock because another transaction holds it. Unlike the default SELECT FOR UPDATE which blocks indefinitely until the lock is released, NOWAIT returns an error immediately and SKIP LOCKED silently skips locked rows. In Laravel, this occurs in queue job processing, reservation systems, or any pattern that uses pessimistic locking to claim resources. The error itself is actually expected behavior — it signals that contention exists and the application should handle it gracefully.",
+      "symptoms": [
+        "SQLSTATE[55P03]: Lock not available: ERROR: could not obtain lock on row in relation",
+        "Lock contention errors during high-concurrency booking or reservation flows",
+        "Queue workers competing for the same job record in database-driven queues",
+        "Inventory reservation systems failing when multiple users try to claim the same item",
+        "Batch processing jobs failing when parallel workers target overlapping row sets"
+      ],
+      "fix_steps": [
+        "Understand the intent: NOWAIT is designed to fail fast — the error is expected behavior, not a bug. Your application should handle it as a normal control flow event",
+        "Catch the specific exception: wrap the lockForUpdate() query in try-catch and handle SQLSTATE[55P03] by retrying, skipping, or returning a user-friendly 'resource busy' message",
+        "Use SKIP LOCKED for queue-like patterns: this tells PostgreSQL to silently skip locked rows and return only unlocked ones — ideal for job claiming and work distribution",
+        "In Laravel, use sharedLock() when you only need read consistency without blocking other readers — this reduces contention compared to lockForUpdate()",
+        "Add exponential backoff retry: if using NOWAIT, retry 3-5 times with increasing delays before giving up",
+        "Design for partitioned work: assign workers to non-overlapping row ranges (e.g., by modulo of ID) to minimize lock contention"
+      ],
+      "example_code": {
+        "before": "// Problem: NOWAIT fails immediately if row is locked\nDB::transaction(function () {\n    $seat = Seat::where('event_id', $eventId)\n        ->where('status', 'available')\n        ->lockForUpdate()\n        ->first();\n    // Blocks forever if another transaction holds the lock\n    // Or with raw NOWAIT:\n    // SQLSTATE[55P03] if seat is locked by another request\n});",
+        "after": "// Fix: Use SKIP LOCKED to claim the next available seat\nDB::transaction(function () use ($eventId, $userId) {\n    $seat = Seat::where('event_id', $eventId)\n        ->where('status', 'available')\n        ->orderBy('seat_number')\n        ->limit(1)\n        ->lockForUpdate()\n        // PostgreSQL: SKIP LOCKED via raw\n        ->whereRaw('true FOR UPDATE SKIP LOCKED')\n        ->first();\n\n    if (!$seat) {\n        throw new NoSeatsAvailableException();\n    }\n\n    $seat->update([\n        'status' => 'reserved',\n        'reserved_by' => $userId,\n        'reserved_at' => now(),\n    ]);\n});\n\n// Alternative: raw query with SKIP LOCKED\n$seat = DB::selectOne(\n    'SELECT * FROM seats WHERE event_id = ? AND status = ? ORDER BY seat_number LIMIT 1 FOR UPDATE SKIP LOCKED',\n    [$eventId, 'available']\n);",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "locking",
+        "concurrency",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "What is the difference between SELECT FOR UPDATE, NOWAIT, and SKIP LOCKED in PostgreSQL?",
+          "answer": "SELECT FOR UPDATE blocks the current transaction until the row lock is released by the other transaction — this can wait indefinitely and lead to timeouts. Adding NOWAIT makes it fail immediately with SQLSTATE[55P03] if the row is locked — useful when you want fast failure instead of blocking. SKIP LOCKED silently skips over any locked rows and returns only unlocked ones — perfect for queue-like patterns where any available row is acceptable. In Laravel, use lockForUpdate() for the blocking variant and raw SQL for NOWAIT and SKIP LOCKED, as Eloquent doesn't have built-in methods for these modifiers."
+        },
+        {
+          "question": "How do I implement SKIP LOCKED in Laravel Eloquent for job claiming?",
+          "answer": "Laravel's Eloquent doesn't have a native skipLocked() method, so use a raw query approach. Wrap it in a transaction: DB::transaction(fn() => DB::selectOne('SELECT * FROM jobs WHERE status = ? LIMIT 1 FOR UPDATE SKIP LOCKED', ['pending'])). Then update the claimed row within the same transaction. This pattern efficiently distributes work across parallel workers without lock contention — each worker gets a different unlocked row. This is exactly how PostgreSQL-based queue systems like que (Ruby) and River (Go) work internally."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "SQLSTATE[08006] Could Not Connect to Server Connection Refused",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-08006-connection-refused-timeout-docker",
+      "root_cause": "SQLSTATE[08006] indicates that the PostgreSQL client library (libpq) could not establish a TCP connection to the PostgreSQL server. This is a network-level failure that occurs before any authentication or protocol negotiation. In Laravel with Docker, this commonly happens because the PostgreSQL container hasn't finished initializing when the Laravel container starts, the database service name in docker-compose.yml doesn't match DB_HOST in .env, firewall rules block the connection, or PostgreSQL is not configured to accept connections on the expected interface (listen_addresses in postgresql.conf). In cloud environments, security groups, private networking, and SSL requirements add more potential failure points.",
+      "symptoms": [
+        "SQLSTATE[08006]: could not connect to server: Connection refused on the specified host and port",
+        "Laravel application failing to boot with database connection errors after docker-compose up",
+        "Intermittent connection failures during container restarts or deployments",
+        "php artisan migrate failing with 'could not connect to server' in CI/CD pipelines",
+        "Health check endpoints returning 500 because the database connection cannot be established"
+      ],
+      "fix_steps": [
+        "Verify PostgreSQL is running: check with docker-compose ps or pg_isready -h localhost -p 5432 to confirm the server accepts connections",
+        "In Docker Compose, add a depends_on with healthcheck: ensure the Laravel service waits for PostgreSQL to be ready, not just started — use pg_isready in the healthcheck condition",
+        "Verify DB_HOST matches the Docker service name: in docker-compose, use the service name (e.g., 'postgres') not 'localhost' or '127.0.0.1' for inter-container communication",
+        "Check PostgreSQL listen_addresses: ensure postgresql.conf has listen_addresses = '*' if connections come from other containers or remote hosts",
+        "Verify pg_hba.conf allows the connection: ensure there's a rule for the Laravel container's IP range (e.g., host all all 172.0.0.0/8 md5)",
+        "Add connection retry logic in your Docker entrypoint script: loop until pg_isready succeeds before starting the Laravel application"
+      ],
+      "example_code": {
+        "before": "// docker-compose.yml — BROKEN: no healthcheck, app starts before DB is ready\nservices:\n  app:\n    build: .\n    depends_on:\n      - postgres\n    environment:\n      DB_HOST: localhost  # wrong: should be service name\n      DB_PORT: 5432\n  postgres:\n    image: postgres:16",
+        "after": "// docker-compose.yml — FIXED: proper healthcheck and service name\nservices:\n  app:\n    build: .\n    depends_on:\n      postgres:\n        condition: service_healthy\n    environment:\n      DB_HOST: postgres    # Docker service name\n      DB_PORT: 5432\n      DB_CONNECTION: pgsql\n\n  postgres:\n    image: postgres:16\n    environment:\n      POSTGRES_DB: myapp\n      POSTGRES_USER: myapp\n      POSTGRES_PASSWORD: secret\n    healthcheck:\n      test: [\"CMD-SHELL\", \"pg_isready -U myapp -d myapp\"]\n      interval: 5s\n      timeout: 5s\n      retries: 5\n    ports:\n      - \"5432:5432\"\n\n// Docker entrypoint with retry (entrypoint.sh)\n#!/bin/bash\nuntil pg_isready -h $DB_HOST -p $DB_PORT -U $DB_USERNAME; do\n  echo \"Waiting for PostgreSQL...\"\n  sleep 2\ndone\nphp artisan migrate --force\nphp-fpm",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "docker",
+        "devops-and-infrastructure",
+        "connection",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Why does my Laravel app fail to connect to PostgreSQL in Docker Compose?",
+          "answer": "The most common cause is using DB_HOST=localhost or DB_HOST=127.0.0.1 in your .env file. Inside Docker Compose, containers communicate via the Docker network using service names, not localhost. Set DB_HOST to your PostgreSQL service name (e.g., 'postgres' or 'db'). The second most common cause is starting the Laravel container before PostgreSQL is ready — use depends_on with a healthcheck condition instead of just depends_on, which only waits for the container to start, not for PostgreSQL to accept connections."
+        },
+        {
+          "question": "How do I debug PostgreSQL connection issues in Laravel?",
+          "answer": "Start by isolating the layer: (1) Network: can you reach the host? Use telnet DB_HOST DB_PORT or nc -zv DB_HOST DB_PORT. (2) PostgreSQL: is the server ready? Use pg_isready -h HOST -p PORT. (3) Authentication: can you authenticate? Use psql -h HOST -p PORT -U USER -d DATABASE. (4) Laravel: is the config correct? Run php artisan tinker then DB::connection()->getPdo(). Check each layer in order — most connection issues are network or configuration problems, not application bugs. Also verify your .env file is being read correctly with php artisan config:show database."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[25P02] Current Transaction is Aborted",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-25p02-transaction-aborted-commands-ignored",
+      "root_cause": "PostgreSQL enforces strict transaction integrity — if any statement within a transaction fails, all subsequent statements are rejected with SQLSTATE[25P02] until the transaction is either rolled back (ROLLBACK) or the enclosing savepoint is released. This differs fundamentally from MySQL, which allows subsequent statements to execute even after an error within the same transaction. In Laravel, this commonly surfaces when a query fails inside DB::transaction() but the error is caught by application code without rolling back, when multiple database operations in a single request span an implicit transaction, or when using try-catch blocks inside transactions that swallow database errors.",
+      "symptoms": [
+        "SQLSTATE[25P02]: In failed SQL transaction: ERROR: current transaction is aborted, commands ignored until end of transaction block",
+        "Cascading database errors where the first error causes all subsequent queries in the request to fail",
+        "API endpoints that return confusing error messages because the original error is masked by 25P02",
+        "Test suites with multiple database assertions failing after the first assertion error",
+        "Queue jobs that partially complete, then fail on subsequent queries after an earlier query error"
+      ],
+      "fix_steps": [
+        "Never catch and ignore database exceptions inside DB::transaction() — let them propagate so Laravel can ROLLBACK the transaction automatically",
+        "If you must handle errors inside a transaction, use DB::savepoint() (Laravel 11+) or raw SAVEPOINT SQL to create nested recovery points",
+        "Move non-critical operations outside the transaction: if sending emails or making API calls can fail, do them after the DB::transaction() block commits",
+        "Use separate try-catch blocks for each independent database operation instead of wrapping multiple operations in a single transaction with a single catch",
+        "For testing, ensure each test case gets a fresh transaction — Laravel's RefreshDatabase trait handles this, but custom transaction logic can interfere",
+        "Add error logging before the catch: Log::error() the original exception to debug the root cause, since 25P02 masks the original error"
+      ],
+      "example_code": {
+        "before": "// BROKEN: catching error inside transaction leaves it aborted\nDB::transaction(function () {\n    User::create(['name' => 'John', 'email' => 'john@test.com']);\n\n    try {\n        // This fails (duplicate email)\n        User::create(['name' => 'John2', 'email' => 'john@test.com']);\n    } catch (\\Exception $e) {\n        // Swallowed! Transaction is now aborted\n        Log::warning('Duplicate, skipping');\n    }\n\n    // SQLSTATE[25P02] — this fails because transaction is aborted\n    Order::create(['user_id' => 1, 'total' => 100]);\n});",
+        "after": "// FIXED: Use savepoints for partial error recovery\nDB::transaction(function () {\n    User::create(['name' => 'John', 'email' => 'john@test.com']);\n\n    // Use savepoint for the operation that might fail\n    try {\n        DB::statement('SAVEPOINT create_duplicate');\n        User::create(['name' => 'John2', 'email' => 'john@test.com']);\n    } catch (\\Exception $e) {\n        DB::statement('ROLLBACK TO SAVEPOINT create_duplicate');\n        Log::warning('Duplicate, skipped safely');\n    }\n\n    // This works because the savepoint rollback recovered the transaction\n    Order::create(['user_id' => 1, 'total' => 100]);\n});\n\n// Alternative: separate transactions for independent operations\n$user = DB::transaction(fn() => User::create(['name' => 'John', 'email' => 'john@test.com']));\n\ntry {\n    DB::transaction(fn() => AuditLog::create(['action' => 'user_created', 'user_id' => $user->id]));\n} catch (\\Exception $e) {\n    Log::warning('Audit log failed, continuing');\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "transactions",
+        "error-handling",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Why does PostgreSQL abort the entire transaction after one error but MySQL doesn't?",
+          "answer": "PostgreSQL follows the SQL standard's transaction model strictly — a transaction is an atomic unit, and if any part fails, the entire unit is in an invalid state. MySQL's InnoDB engine is more lenient and allows individual statement failures without aborting the enclosing transaction. PostgreSQL's approach is actually safer because it prevents partially committed data from entering the database. To work around this in PostgreSQL, use SAVEPOINTs to create recovery points within a transaction, allowing you to roll back to a known-good state after a failure without aborting the entire transaction."
+        },
+        {
+          "question": "How do I use savepoints in Laravel with PostgreSQL?",
+          "answer": "Laravel 11+ has a built-in DB::savepoint() method. For earlier versions, use raw SQL: DB::statement('SAVEPOINT my_savepoint') before the risky operation, DB::statement('ROLLBACK TO SAVEPOINT my_savepoint') in the catch block, and DB::statement('RELEASE SAVEPOINT my_savepoint') after successful completion. This creates a nested recovery point within the transaction. If the risky operation fails, you roll back to the savepoint without aborting the outer transaction, then continue with subsequent operations."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[42703] Column Does Not Exist (Undefined Column)",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-42703-undefined-column-migration-schema-cache",
+      "root_cause": "PostgreSQL throws SQLSTATE[42703] when a query references a column name that doesn't exist in the specified table. Unlike MySQL, PostgreSQL is case-sensitive for quoted identifiers — a column created as \"Status\" must be queried as \"Status\", not status. In Laravel, this commonly occurs after adding a new column in a migration that hasn't been run, when the schema cache (used by model factories and IDE helpers) is stale, when Eloquent's $fillable or $appends arrays reference columns that were renamed or removed, or when using raw SQL with typos in column names.",
+      "symptoms": [
+        "SQLSTATE[42703]: Undefined column: ERROR: column \"column_name\" does not exist",
+        "Eloquent queries failing after a column rename migration that wasn't applied to all environments",
+        "Factory definitions referencing columns that were removed or renamed in recent migrations",
+        "API responses breaking because $appends includes an accessor for a non-existent column",
+        "Raw SQL queries with column name typos or incorrect case (PostgreSQL is case-sensitive for quoted names)"
+      ],
+      "fix_steps": [
+        "Verify the column exists: run \\d tablename in psql or SELECT column_name FROM information_schema.columns WHERE table_name = 'tablename' to list all columns",
+        "Check migration status: run php artisan migrate:status and ensure all migrations including the one that adds the column have been applied",
+        "Regenerate IDE helper and schema cache: run php artisan ide-helper:models --write to update model annotations",
+        "Search your codebase for the old column name: use grep to find all references in models, factories, seeders, and tests that need updating",
+        "For case sensitivity issues, avoid quoting column names in migrations — use $table->string('status') not $table->string('Status'), as unquoted identifiers are lowercased by PostgreSQL",
+        "Add the new column migration to your deployment pipeline and ensure it runs before the code that references it is deployed"
+      ],
+      "example_code": {
+        "before": "// Problem: column referenced but migration not run\n// Migration exists but not applied:\n// $table->string('display_name');\n\n// Model tries to use it\nclass User extends Model\n{\n    protected $appends = ['display_name']; // column doesn't exist yet\n}\n\n// Or: case sensitivity issue\nSchema::create('users', function ($table) {\n    $table->string('Status'); // ← creates \"Status\" (quoted, case-sensitive)\n});\nUser::where('status', 'active')->get(); // ERROR: column \"status\" does not exist",
+        "after": "// Fix 1: Ensure migration is applied before using the column\n// php artisan migrate --force\n\n// Fix 2: Use consistent lowercase names (PostgreSQL convention)\nSchema::create('users', function (Blueprint $table) {\n    $table->string('status')->default('active'); // lowercase, unquoted\n});\n\n// Fix 3: Guard against missing columns in model\nclass User extends Model\n{\n    protected $appends = [];\n\n    // Dynamically add appends only if column exists\n    protected static function booted(): void\n    {\n        if (Schema::hasColumn('users', 'display_name')) {\n            static::addGlobalScope('display_name', function ($query) {\n                $query->addSelect('display_name');\n            });\n        }\n    }\n}\n\n// Fix 4: Safe column reference in queries\nif (Schema::hasColumn('users', 'display_name')) {\n    $users = User::whereNotNull('display_name')->get();\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "migrations",
+        "schema",
+        "eloquent",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Why does PostgreSQL treat column names as case-sensitive sometimes?",
+          "answer": "PostgreSQL folds unquoted identifiers to lowercase. So CREATE TABLE users (Name text) actually creates a column named 'name' (lowercase). But if you quote it — CREATE TABLE users (\"Name\" text) — PostgreSQL preserves the case, and you must always quote it in queries: SELECT \"Name\" FROM users. Laravel's schema builder doesn't quote column names by default, so $table->string('status') creates 'status' (lowercase). Problems arise when raw SQL or third-party tools create columns with quoted mixed-case names. Best practice: always use lowercase snake_case column names without quoting."
+        },
+        {
+          "question": "How do I handle column renames safely in Laravel PostgreSQL migrations?",
+          "answer": "Use Schema::table('users', fn($t) => $t->renameColumn('old_name', 'new_name')). Before running the migration, search your entire codebase for references to the old column name — including models, factories, seeders, tests, API resources, and Blade templates. For zero-downtime deployments, use the expand-contract pattern: (1) add the new column, (2) write to both columns, (3) backfill data, (4) switch reads to the new column, (5) remove the old column. This prevents SQLSTATE[42703] errors during the transition period."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[23503] Foreign Key Constraint Violation",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-23503-foreign-key-constraint-violation-cascade",
+      "root_cause": "PostgreSQL strictly enforces referential integrity through foreign key constraints. SQLSTATE[23503] occurs when an INSERT or UPDATE would create a foreign key reference to a row that doesn't exist in the parent table, or when a DELETE or UPDATE on the parent would leave orphaned references in the child table. In Laravel, this commonly happens when deleting a user who has related orders, when inserting records with invalid foreign key values, or when the deletion order of related models isn't handled correctly. Unlike some ORMs that manage referential integrity at the application level, PostgreSQL enforces it at the database level as the final safety net.",
+      "symptoms": [
+        "SQLSTATE[23503]: Foreign key violation: ERROR: insert or update on table violates foreign key constraint",
+        "SQLSTATE[23503]: Foreign key violation: ERROR: update or delete on table violates foreign key constraint",
+        "Parent model deletion failing because child records still reference it",
+        "Seeder or factory scripts failing when inserting records with non-existent foreign key references",
+        "Cascade delete not working as expected because ON DELETE CASCADE wasn't defined in the migration"
+      ],
+      "fix_steps": [
+        "Check the constraint definition: run \\d+ tablename in psql to see all foreign key constraints and their ON DELETE behavior (RESTRICT, CASCADE, SET NULL, NO ACTION)",
+        "Define proper ON DELETE behavior in migrations: use $table->foreignId('user_id')->constrained()->cascadeOnDelete() for automatic cascade, or ->nullOnDelete() to set NULL",
+        "For existing constraints without cascade, add it via migration: DB::statement('ALTER TABLE orders DROP CONSTRAINT orders_user_id_foreign, ADD CONSTRAINT orders_user_id_foreign FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE')",
+        "Use Eloquent model events for complex deletion logic: define a deleting event that removes or reassigns child records before the parent is deleted",
+        "For soft-deleted models, foreign key constraints still apply — ensure your application logic handles soft-deleted parent references",
+        "Order your seeders correctly: seed parent tables before child tables, and use factories with create() rather than raw inserts to ensure relationships are valid"
+      ],
+      "example_code": {
+        "before": "// Problem: deleting user fails because orders reference it\n$user = User::find(1);\n$user->delete();\n// SQLSTATE[23503]: update or delete on table \"users\" violates\n// foreign key constraint \"orders_user_id_foreign\" on table \"orders\"\n\n// Migration without cascade:\n$table->foreignId('user_id')->constrained(); // default: RESTRICT",
+        "after": "// Fix 1: Add cascade in migration\nSchema::create('orders', function (Blueprint $table) {\n    $table->id();\n    $table->foreignId('user_id')\n        ->constrained()\n        ->cascadeOnDelete();  // ON DELETE CASCADE\n    $table->decimal('total');\n    $table->timestamps();\n});\n\n// Fix 2: Use nullOnDelete for optional relationships\n$table->foreignId('assigned_to')\n    ->nullable()\n    ->constrained('users')\n    ->nullOnDelete();  // SET NULL on parent delete\n\n// Fix 3: Eloquent model event for complex logic\nclass User extends Model\n{\n    protected static function booted(): void\n    {\n        static::deleting(function (User $user) {\n            $user->orders()->each(function (Order $order) {\n                $order->items()->delete();\n                $order->delete();\n            });\n        });\n    }\n}\n\n// Fix 4: Alter existing constraint to add cascade\nDB::statement('\n    ALTER TABLE orders\n    DROP CONSTRAINT orders_user_id_foreign,\n    ADD CONSTRAINT orders_user_id_foreign\n        FOREIGN KEY (user_id) REFERENCES users(id)\n        ON DELETE CASCADE\n');",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "foreign-keys",
+        "relationships",
+        "migrations",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Should I use ON DELETE CASCADE or handle deletions in Laravel application code?",
+          "answer": "Use ON DELETE CASCADE for simple parent-child relationships where deleting the parent should always delete the children (e.g., user -> sessions, post -> comments). Use application-level deletion (Eloquent events or explicit delete calls) when the deletion logic is complex — for example, when you need to check permissions, send notifications, soft-delete instead of hard-delete, archive data before deletion, or handle multi-level cascades with business rules. The safest approach is to use both: database-level CASCADE as a safety net and application-level logic for business rules."
+        },
+        {
+          "question": "How do I seed a database with foreign key constraints in Laravel?",
+          "answer": "Order your seeders to create parent records before child records. In DatabaseSeeder::run(), call $this->call(UsersSeeder::class) before $this->call(OrdersSeeder::class). Within seeders, use factories with relationships: User::factory()->has(Order::factory()->count(3))->create(). For complex seeding, temporarily disable foreign key checks with DB::statement('SET session_replication_role = replica') (PostgreSQL equivalent of MySQL's FOREIGN_KEY_CHECKS=0), seed all tables, then re-enable with DB::statement('SET session_replication_role = DEFAULT'). But prefer proper ordering over disabling constraints."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[HY000] General Error 7 No Connection to the Server",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-hy000-no-connection-lost-connection-server",
+      "root_cause": "SQLSTATE[HY000] with error code 7 indicates that an established PostgreSQL connection was lost during query execution. Unlike SQLSTATE[08006] (connection refused) which fails before connecting, this error means the connection was successfully established but dropped mid-session. Common causes include PostgreSQL server restarts during deployments, PgBouncer server_idle_timeout killing idle connections, cloud provider maintenance events (RDS, Cloud SQL), network interruptions between the application and database server, or PHP-FPM workers holding persistent connections that become stale. In Laravel with Octane or Swoole, this is especially common because connections persist across requests.",
+      "symptoms": [
+        "SQLSTATE[HY000]: General error: 7 no connection to the server",
+        "Intermittent database errors that resolve themselves after a few seconds",
+        "Errors appearing exactly at PgBouncer's server_idle_timeout interval",
+        "Connection failures during database failover or maintenance windows",
+        "Laravel Octane workers producing database errors after idle periods with no traffic"
+      ],
+      "fix_steps": [
+        "Enable Laravel's automatic reconnection: set 'reconnect' => true in config/database.php (Laravel 10+) or implement a custom reconnect middleware",
+        "Handle lost connections in application code: catch QueryException and check for error code HY000, then retry with DB::reconnect()",
+        "Configure PgBouncer server_idle_timeout to be longer than your typical idle period, or configure client-side keepalive queries",
+        "For Laravel Octane, add database reconnection to the RequestReceived listener to verify the connection is alive before each request",
+        "Set PDO::ATTR_TIMEOUT in your database config to detect dropped connections faster instead of waiting for the TCP timeout",
+        "For cloud databases (RDS, Cloud SQL), configure automatic failover handling with a DNS-based endpoint that updates during failover events"
+      ],
+      "example_code": {
+        "before": "// Problem: persistent connection goes stale\n// config/database.php\n'pgsql' => [\n    'driver' => 'pgsql',\n    'host' => env('DB_HOST'),\n    'database' => env('DB_DATABASE'),\n    // No reconnect or timeout handling\n    // Connection dies after server restart or idle timeout\n];",
+        "after": "// Fix: Add reconnection and timeout handling\n// config/database.php\n'pgsql' => [\n    'driver' => 'pgsql',\n    'host' => env('DB_HOST'),\n    'database' => env('DB_DATABASE'),\n    'username' => env('DB_USERNAME'),\n    'password' => env('DB_PASSWORD'),\n    'options' => [\n        PDO::ATTR_TIMEOUT => 5,\n        PDO::ATTR_PERSISTENT => false,\n    ],\n],\n\n// App\\Providers\\AppServiceProvider.php\nuse Illuminate\\Database\\QueryException;\n\npublic function boot(): void\n{\n    // Auto-reconnect on lost connection\n    DB::listen(function ($query) {\n        // monitoring\n    });\n}\n\n// Middleware or helper for retry on lost connection\nfunction withDbRetry(callable $operation, int $retries = 3): mixed\n{\n    for ($i = 1; $i <= $retries; $i++) {\n        try {\n            return $operation();\n        } catch (QueryException $e) {\n            if (str_contains($e->getMessage(), 'no connection to the server') && $i < $retries) {\n                DB::reconnect();\n                continue;\n            }\n            throw $e;\n        }\n    }\n}\n\n// Usage\n$users = withDbRetry(fn() => User::where('active', true)->get());",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "connection",
+        "reliability",
+        "devops-and-infrastructure",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "How do I handle PostgreSQL connection drops in Laravel Octane?",
+          "answer": "Laravel Octane keeps the application in memory across requests, so a database connection established on the first request may be stale by the hundredth request. Add a connection check to the RequestReceived event in config/octane.php: listen to the RequestReceived event and call DB::connection()->getPdo() wrapped in a try-catch — if it throws, call DB::reconnect(). Also configure Octane to flush the database manager between requests by adding it to the 'flush' array. Set max_requests in Octane to periodically restart workers, which establishes fresh connections."
+        },
+        {
+          "question": "What causes intermittent 'no connection to the server' errors in Laravel with PgBouncer?",
+          "answer": "PgBouncer's server_idle_timeout (default: 600 seconds) closes idle PostgreSQL connections. If a Laravel PHP-FPM worker has been idle longer than this timeout, its next database query will use a PgBouncer connection that maps to a closed backend connection. PgBouncer detects this and creates a new backend connection, but the timing can cause transient errors. Fix by setting server_idle_timeout higher than your longest idle period, or configure server_check_query = 'SELECT 1' in PgBouncer to validate connections before handing them to clients."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[42P07] Relation Already Exists",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-42p07-relation-already-exists-migration-table",
+      "root_cause": "PostgreSQL throws SQLSTATE[42P07] when a CREATE TABLE or CREATE INDEX statement attempts to create a relation (table, view, index) that already exists in the database. In Laravel, this most commonly occurs when running migrations that have already been applied (e.g., running php artisan migrate on a database that already has the tables), when migration files create tables without checking for existence first, when running migrate:fresh in production accidentally, or when a failed migration left a table partially created before the migration was rolled back. Unlike MySQL's IF NOT EXISTS which is commonly used, Laravel migrations for PostgreSQL should use Schema::hasTable() checks.",
+      "symptoms": [
+        "SQLSTATE[42P07]: Duplicate relation: ERROR: relation \"table_name\" already exists",
+        "Migration failing partway through because an earlier failed run left tables behind",
+        "Deployment scripts failing when running migrations against an existing database",
+        "Schema::create() failing for a table that was manually created outside of migrations",
+        "Index creation failing because a previous migration created the same index with a different name"
+      ],
+      "fix_steps": [
+        "Check the migration status: run php artisan migrate:status to see which migrations have been applied and which are pending",
+        "For manual database recovery, add the migration to the migrations table without running it: INSERT INTO migrations (migration, batch) VALUES ('2024_01_01_000000_create_tablename_table', 1)",
+        "Use Schema::hasTable() in migrations for idempotent creation: if (!Schema::hasTable('tablename')) { Schema::create(...) }",
+        "For indexes, use the same pattern: if (!Schema::hasIndex('tablename', 'index_name')) before creating the index",
+        "When debugging, check what tables exist: SELECT tablename FROM pg_tables WHERE schemaname = 'public' ORDER BY tablename",
+        "If a migration partially failed, manually drop the partially created table and re-run: DROP TABLE IF EXISTS tablename, then php artisan migrate"
+      ],
+      "example_code": {
+        "before": "// Problem: migration assumes fresh database\nclass CreateOrdersTable extends Migration\n{\n    public function up(): void\n    {\n        Schema::create('orders', function (Blueprint $table) {\n            $table->id();\n            $table->foreignId('user_id')->constrained();\n            $table->decimal('total');\n            $table->timestamps();\n        });\n        // SQLSTATE[42P07] if 'orders' table already exists\n    }\n}",
+        "after": "// Fix: Make migration idempotent\nclass CreateOrdersTable extends Migration\n{\n    public function up(): void\n    {\n        if (!Schema::hasTable('orders')) {\n            Schema::create('orders', function (Blueprint $table) {\n                $table->id();\n                $table->foreignId('user_id')->constrained();\n                $table->decimal('total');\n                $table->timestamps();\n            });\n        }\n    }\n\n    public function down(): void\n    {\n        Schema::dropIfExists('orders');\n    }\n}\n\n// For indexes:\nSchema::table('orders', function (Blueprint $table) {\n    if (!Schema::hasIndex('orders', 'orders_user_id_total_index')) {\n        $table->index(['user_id', 'total']);\n    }\n});\n\n// To mark a migration as already applied without running it:\n// php artisan migrate:mark 2024_01_01_000000_create_orders_table\n// Or manually:\n// INSERT INTO migrations (migration, batch) VALUES ('2024_01_01_000000_create_orders_table', 1);",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "migrations",
+        "deployment",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "How do I fix a partially failed migration in Laravel PostgreSQL?",
+          "answer": "If a migration failed partway through (created the table but failed on an index or column), you have two options: (1) Drop the partially created table with Schema::dropIfExists() or raw DROP TABLE IF EXISTS, then re-run the migration. (2) Manually complete the remaining parts of the migration in tinker or psql, then mark the migration as applied in the migrations table. Option 1 is safer for development. For production, use option 2 to avoid data loss. Always test migrations against a copy of the production database before deploying."
+        },
+        {
+          "question": "Should I use Schema::hasTable() checks in every Laravel migration?",
+          "answer": "For most projects, no — Laravel's migration system tracks which migrations have run, so idempotency checks are redundant. However, use Schema::hasTable() when: (1) your project has legacy tables created outside of migrations, (2) you're writing a package that installs into existing databases, (3) your deployment process might run migrations multiple times (rare), or (4) you're consolidating multiple migration files into a single squashed migration. For standard application development, trust the migration system and keep migrations simple."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[22001] Value Too Long for Type Character Varying",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-22001-value-too-long-string-truncation-validation",
+      "root_cause": "PostgreSQL enforces the length constraint of varchar(n) columns strictly — any INSERT or UPDATE that provides a string longer than the defined maximum length is rejected with SQLSTATE[22001]. MySQL, in contrast, silently truncates the value in most configurations. In Laravel, this commonly occurs when form inputs exceed the column length, when external API data is stored without length validation, or when seeded/imported data has unexpected lengths. The fix requires adding proper validation at the Laravel layer to catch oversized values before they reach the database, and reviewing column sizes for adequacy.",
+      "symptoms": [
+        "SQLSTATE[22001]: String data, right truncation: ERROR: value too long for type character varying(255)",
+        "User registration or profile update failing when long strings are submitted",
+        "Data import jobs crashing partway through on records with unexpectedly long values",
+        "API endpoints returning 500 errors when receiving long payloads from third-party systems",
+        "Seeder scripts failing on generated fake data that exceeds column limits"
+      ],
+      "fix_steps": [
+        "Add max length validation in your FormRequest: use 'max:255' rule for varchar(255) columns to reject oversized input before it reaches the database",
+        "Review and increase column sizes where appropriate: ALTER TABLE users ALTER COLUMN bio TYPE text removes the length limit entirely",
+        "In migrations, use $table->text('bio') instead of $table->string('bio') for fields that need unlimited length (PostgreSQL text type has no practical limit)",
+        "Add a global mutator or model event that truncates strings to column size as a safety net: Str::limit($value, 255)",
+        "For existing columns, check current max values: SELECT max(length(column_name)) FROM tablename to understand your actual data lengths",
+        "Configure database-level defaults using tryCatch in your exception handler to return 422 (validation error) instead of 500 for this specific SQLSTATE"
+      ],
+      "example_code": {
+        "before": "// Problem: no length validation, PostgreSQL rejects the value\n$user->update([\n    'bio' => $request->input('bio'),\n    // SQLSTATE[22001] if bio is varchar(255) and input is 300+ chars\n]);",
+        "after": "// Fix 1: Validate input length\nclass UpdateProfileRequest extends FormRequest\n{\n    public function rules(): array\n    {\n        return [\n            'name' => ['required', 'string', 'max:255'],\n            'bio' => ['nullable', 'string', 'max:1000'],\n            'website' => ['nullable', 'url', 'max:255'],\n        ];\n    }\n}\n\n// Fix 2: Use text column for unlimited-length fields\n// Migration:\nSchema::table('users', function (Blueprint $table) {\n    $table->text('bio')->nullable()->change(); // no length limit\n});\n\n// Fix 3: Model-level safety net\nclass User extends Model\n{\n    public function setBioAttribute(?string $value): void\n    {\n        $this->attributes['bio'] = $value ? Str::limit($value, 1000, '') : null;\n    }\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "validation",
+        "data-integrity",
+        "eloquent",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "What is the difference between varchar(255) and text in PostgreSQL?",
+          "answer": "In PostgreSQL, there is virtually no performance difference between varchar(n), varchar (unlimited), and text — they all use the same internal storage mechanism (varlena). The only difference is that varchar(n) adds a length check constraint. text has no length limit. Unlike MySQL where varchar and text have different storage engines and performance characteristics, PostgreSQL treats them identically. Use varchar(n) only when you have a business rule requiring a specific maximum length (e.g., email addresses). For everything else, text is more flexible and avoids SQLSTATE[22001] errors entirely."
+        },
+        {
+          "question": "How do I change a varchar column to text in a Laravel PostgreSQL migration?",
+          "answer": "Use Schema::table('tablename', fn($t) => $t->text('column_name')->nullable()->change()). This runs ALTER TABLE ... ALTER COLUMN ... TYPE text, which is an instant operation in PostgreSQL for varchar-to-text conversion — no table rewrite is needed. For the reverse (text to varchar), PostgreSQL must check every existing value, which scans the whole table. Always run migrations during low-traffic periods for large tables. If using doctrine/dbal for column changes, ensure it's installed: composer require doctrine/dbal."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[42601] Syntax Error at or Near in Raw Query",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-42601-syntax-error-raw-query-binding-placeholder",
+      "root_cause": "PostgreSQL throws SQLSTATE[42601] when it encounters a syntax error in a SQL statement. In Laravel, this commonly occurs when using DB::raw() or raw expressions with incorrect PostgreSQL syntax (PostgreSQL uses $1, $2 for prepared statement placeholders internally, while Laravel passes ? placeholders through PDO), when MySQL-specific syntax like backtick quoting or GROUP_CONCAT is used against PostgreSQL, when column aliases are referenced in WHERE clauses (PostgreSQL doesn't allow this), or when JSON operators conflict with PDO placeholder parsing. The error message includes the position of the syntax error, which helps pinpoint the exact location of the problem.",
+      "symptoms": [
+        "SQLSTATE[42601]: Syntax error: ERROR: syntax error at or near with position indicator in the query",
+        "Raw SQL queries that work in MySQL but fail when switching to PostgreSQL",
+        "JSON queries using -> or ->> operators conflicting with PDO placeholder parsing",
+        "Queries using MySQL backtick quoting instead of PostgreSQL double-quote quoting",
+        "GROUP BY queries failing because PostgreSQL requires all selected columns in GROUP BY or aggregate functions"
+      ],
+      "fix_steps": [
+        "Check the error position: the error message includes 'at or near' with the problematic token — use this to find the exact syntax issue in your query",
+        "Replace MySQL-specific syntax: use double quotes for identifiers instead of backticks, CONCAT() instead of ||, and string_agg() instead of GROUP_CONCAT()",
+        "For JSON operations with ->> operator, use the whereJsonContains() Eloquent method or wrap raw JSON queries correctly: DB::raw(\"data->>'key'\")",
+        "Ensure all non-aggregated SELECT columns appear in GROUP BY: PostgreSQL enforces SQL standard group-by rules strictly unlike MySQL's permissive mode",
+        "Use parameterized queries with ? placeholders via DB::select() instead of string concatenation to avoid quoting and injection issues",
+        "Test raw queries in psql first to validate syntax before embedding them in Laravel code"
+      ],
+      "example_code": {
+        "before": "// Problem: MySQL syntax used against PostgreSQL\n$results = DB::select(\"\n    SELECT `users`.`name`, GROUP_CONCAT(`orders`.`id`) as order_ids\n    FROM `users`\n    JOIN `orders` ON `users`.`id` = `orders`.`user_id`\n    WHERE `users`.`created_at` > NOW() - INTERVAL 30 DAY\n    GROUP BY `users`.`name`\n\");\n// SQLSTATE[42601]: multiple syntax errors (backticks, GROUP_CONCAT, INTERVAL)",
+        "after": "// Fix: PostgreSQL-compatible syntax\n$results = DB::select(\"\n    SELECT users.name, string_agg(orders.id::text, ',') as order_ids\n    FROM users\n    JOIN orders ON users.id = orders.user_id\n    WHERE users.created_at > NOW() - INTERVAL '30 days'\n    GROUP BY users.name\n\");\n\n// Better: use Eloquent query builder for cross-DB compatibility\n$results = User::select('users.name')\n    ->selectRaw(\"string_agg(orders.id::text, ',') as order_ids\")\n    ->join('orders', 'users.id', '=', 'orders.user_id')\n    ->where('users.created_at', '>', now()->subDays(30))\n    ->groupBy('users.name')\n    ->get();\n\n// JSON query — correct PostgreSQL syntax\n$users = User::whereRaw(\"preferences->>'theme' = ?\", ['dark'])->get();\n// Or with Eloquent:\n$users = User::where('preferences->theme', 'dark')->get();",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "raw-sql",
+        "query-builder",
+        "migration-from-mysql",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "What are the main SQL syntax differences between MySQL and PostgreSQL in Laravel?",
+          "answer": "Key differences: (1) Identifiers: MySQL uses backticks (`name`), PostgreSQL uses double quotes (\"name\") — but Eloquent handles this automatically. (2) String aggregation: MySQL uses GROUP_CONCAT(), PostgreSQL uses string_agg(). (3) Intervals: MySQL uses INTERVAL 30 DAY, PostgreSQL uses INTERVAL '30 days'. (4) Type casting: MySQL has implicit casting, PostgreSQL requires explicit casting with ::type syntax. (5) GROUP BY: PostgreSQL requires all non-aggregated columns in GROUP BY. (6) Boolean: PostgreSQL has a native boolean type, MySQL uses tinyint. Use Eloquent's query builder when possible to abstract these differences."
+        },
+        {
+          "question": "How do I use PostgreSQL JSON operators in Laravel raw queries without syntax errors?",
+          "answer": "PostgreSQL's -> and ->> JSON operators can conflict with PDO's ? placeholder parsing. Use DB::raw() for the JSON expression: User::whereRaw(\"metadata->>'key' = ?\", [$value]). For nested access, use #>> with an array path: DB::raw(\"metadata#>>'{nested,key}'\"). Laravel 10+ also supports the -> syntax in Eloquent where clauses: User::where('metadata->key', $value), which the grammar translator converts to the correct PostgreSQL syntax. Avoid string concatenation with user input in JSON queries — always use parameterized placeholders."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[08P01] Protocol Error Unexpected Message Type with PgBouncer",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-08p01-protocol-error-pgbouncer-transaction-pooling",
+      "root_cause": "SQLSTATE[08P01] indicates a PostgreSQL wire protocol violation — the client received an unexpected message type from the server. In Laravel with PgBouncer, this almost always occurs when using transaction pooling mode with features that require session-level state: prepared statements, SET commands, LISTEN/NOTIFY, advisory locks that span transactions, or DEALLOCATE. PgBouncer in transaction mode reassigns the backend PostgreSQL connection between transactions, so any session-level state set in one transaction is lost or conflicts with the next. PDO's default emulated prepared statements avoid this issue, but native prepared statements trigger it.",
+      "symptoms": [
+        "SQLSTATE[08P01]: Protocol violation: ERROR: unexpected message type 0x44 during COPY or similar",
+        "Random query failures when using PgBouncer in transaction pooling mode",
+        "Prepared statement errors: prepared statement 'pdo_stmt_xxx' does not exist",
+        "Connection errors after SET commands within transactions routed through PgBouncer",
+        "LISTEN/NOTIFY failing silently when PgBouncer reassigns the backend connection"
+      ],
+      "fix_steps": [
+        "Verify PgBouncer pool mode: connect to PgBouncer admin console (psql -p 6432 pgbouncer) and run SHOW POOLS to confirm pool_mode is 'transaction'",
+        "Disable PDO native prepared statements: set PDO::ATTR_EMULATE_PREPARES => true in your Laravel database config options — this sends full SQL strings instead of using the PREPARE/EXECUTE protocol",
+        "Avoid SET commands in application code: configurations set via SET (e.g., SET search_path, SET timezone) are session-level and get lost between transactions in PgBouncer transaction mode",
+        "For multi-tenant search_path, use PgBouncer's server_with parameters or switch to session mode for the tenant connection",
+        "Move advisory locks to transaction-scoped variants: use pg_advisory_xact_lock() instead of pg_advisory_lock() — the xact variant automatically releases when the transaction ends",
+        "If you need session-level features, configure a separate direct PostgreSQL connection (bypassing PgBouncer) for those specific use cases"
+      ],
+      "example_code": {
+        "before": "// Problem: PDO prepared statements conflict with PgBouncer transaction mode\n// config/database.php\n'pgsql' => [\n    'driver' => 'pgsql',\n    'host' => '127.0.0.1',\n    'port' => '6432', // PgBouncer\n    // Default: PDO uses native prepared statements\n    // These create server-side state that PgBouncer can't track\n];",
+        "after": "// Fix: Disable native prepared statements for PgBouncer compatibility\n// config/database.php\n'pgsql' => [\n    'driver' => 'pgsql',\n    'host' => env('DB_HOST', '127.0.0.1'),\n    'port' => env('DB_PORT', '6432'),\n    'database' => env('DB_DATABASE'),\n    'username' => env('DB_USERNAME'),\n    'password' => env('DB_PASSWORD'),\n    'options' => [\n        PDO::ATTR_EMULATE_PREPARES => true, // critical for PgBouncer\n        PDO::ATTR_PERSISTENT => false,\n    ],\n],\n\n// For features requiring session state, use a direct connection\n'pgsql_direct' => [\n    'driver' => 'pgsql',\n    'host' => env('DB_HOST', '127.0.0.1'),\n    'port' => '5432', // direct to PostgreSQL, bypassing PgBouncer\n    'database' => env('DB_DATABASE'),\n    'username' => env('DB_USERNAME'),\n    'password' => env('DB_PASSWORD'),\n],\n\n// Usage: specific operations on direct connection\nDB::connection('pgsql_direct')->statement(\"SET search_path TO tenant_1\");\nDB::connection('pgsql_direct')->select('SELECT * FROM users');",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "pgbouncer",
+        "connection-pooling",
+        "protocol",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Why do prepared statements fail with PgBouncer transaction pooling?",
+          "answer": "PDO's native prepared statements use PostgreSQL's PREPARE/EXECUTE protocol, which creates named prepared statement objects that live for the duration of the session. In PgBouncer transaction mode, the backend PostgreSQL connection is returned to the pool after each transaction. When the next transaction runs, it may get a different backend connection that doesn't have the prepared statement. Attempting to EXECUTE a non-existent prepared statement causes the protocol error. The fix is PDO::ATTR_EMULATE_PREPARES => true, which makes PDO send the complete SQL query with values interpolated, avoiding the server-side PREPARE/EXECUTE cycle entirely."
+        },
+        {
+          "question": "Can I use PgBouncer session mode instead to avoid protocol errors?",
+          "answer": "Yes, session mode avoids all protocol errors by keeping the same backend connection for the entire client session. However, session mode provides less connection multiplexing — each client connection is pinned to one backend connection for its entire lifetime. With 100 PHP-FPM workers, you'd need 100 PostgreSQL connections. Transaction mode can multiplex those 100 workers onto 20 backend connections. If your application needs session-level features (prepared statements, LISTEN/NOTIFY, advisory locks), consider using session mode for a dedicated connection pool and transaction mode for the general application pool."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "SQLSTATE[3D000] Database Does Not Exist",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-3d000-database-does-not-exist-create-tenant",
+      "root_cause": "PostgreSQL throws SQLSTATE[3D000] when a connection attempt specifies a database name that doesn't exist on the server. Unlike MySQL which can auto-create databases in some configurations, PostgreSQL requires databases to be explicitly created with CREATE DATABASE before they can be used. In Laravel, this commonly occurs during initial project setup when the database hasn't been created yet, in multi-tenant applications that dynamically create per-tenant databases, or when the DB_DATABASE environment variable is misconfigured. The error prevents any database connection from being established.",
+      "symptoms": [
+        "SQLSTATE[3D000]: Invalid catalog name: ERROR: database \"myapp\" does not exist",
+        "php artisan migrate failing on fresh project setup because the database doesn't exist",
+        "Multi-tenant application failing when provisioning a new tenant's database dynamically",
+        "CI/CD pipeline failures because the test database wasn't created in the build step",
+        "Connection errors after cloning a project when the .env DB_DATABASE doesn't match any existing database"
+      ],
+      "fix_steps": [
+        "Create the database manually: run createdb myapp from the command line or CREATE DATABASE myapp in psql as a superuser",
+        "For automated setup, add a database creation step: use DB::connection('pgsql_admin')->statement('CREATE DATABASE myapp') with a connection configured to use the postgres default database",
+        "For multi-tenant apps, create databases programmatically: connect to the 'postgres' maintenance database first, then issue CREATE DATABASE tenant_xxx",
+        "In Docker, use POSTGRES_DB environment variable on the PostgreSQL container to auto-create the database on first startup",
+        "Check your .env file: ensure DB_DATABASE matches an existing database — run psql -l to list all databases on the server",
+        "For CI/CD, add a setup step: createdb -U postgres test_myapp or include it in your docker-compose.yml test configuration"
+      ],
+      "example_code": {
+        "before": "// Problem: connecting to a database that doesn't exist\n// .env\nDB_DATABASE=myapp  // doesn't exist on the server\n\n// Multi-tenant: dynamic database creation fails\nconfig(['database.connections.tenant.database' => \"tenant_{$id}\"]);\nDB::connection('tenant')->getPdo();\n// SQLSTATE[3D000] if the database hasn't been created",
+        "after": "// Fix 1: Create database in artisan command or setup script\nArtisan::command('db:create', function () {\n    $database = config('database.connections.pgsql.database');\n    $connection = config('database.connections.pgsql');\n    $connection['database'] = 'postgres'; // connect to maintenance DB\n\n    $pdo = new PDO(\n        \"pgsql:host={$connection['host']};port={$connection['port']};dbname=postgres\",\n        $connection['username'],\n        $connection['password']\n    );\n    $pdo->exec(\"CREATE DATABASE \\\"{$database}\\\"\");\n    $this->info(\"Database {$database} created successfully.\");\n});\n\n// Fix 2: Multi-tenant database provisioning\nfunction createTenantDatabase(string $tenantId): void\n{\n    $dbName = \"tenant_{$tenantId}\";\n    // Must use the maintenance connection (postgres DB)\n    DB::connection('pgsql_admin')->statement(\n        \"CREATE DATABASE \\\"{$dbName}\\\" OWNER \\\"app_user\\\"\"\n    );\n\n    // Run migrations on the new database\n    config([\"database.connections.tenant.database\" => $dbName]);\n    Artisan::call('migrate', [\n        '--database' => 'tenant',\n        '--force' => true,\n    ]);\n}\n\n// Docker: auto-create in docker-compose.yml\n// postgres:\n//   image: postgres:16\n//   environment:\n//     POSTGRES_DB: myapp\n//     POSTGRES_USER: myapp\n//     POSTGRES_PASSWORD: secret",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "multi-tenancy",
+        "setup",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "How do I create a PostgreSQL database from Laravel without using the command line?",
+          "answer": "Connect to the 'postgres' maintenance database (which always exists) and execute CREATE DATABASE. You cannot create a database while connected to it, so you need a separate connection. Configure a 'pgsql_admin' connection in config/database.php with 'database' => 'postgres', then use DB::connection('pgsql_admin')->statement('CREATE DATABASE \"myapp\"'). Note: CREATE DATABASE cannot run inside a transaction, so don't wrap it in DB::transaction(). The user specified in the connection must have CREATEDB privilege or be a superuser."
+        },
+        {
+          "question": "How do I handle dynamic database creation in Laravel multi-tenant applications?",
+          "answer": "Use a dedicated admin connection to the postgres maintenance database for CREATE DATABASE operations. After creating the database, configure a tenant connection dynamically: config(['database.connections.tenant.database' => $dbName]), then run migrations with Artisan::call('migrate', ['--database' => 'tenant']). Use DB::purge('tenant') to reset the connection when switching between tenants. Popular packages like stancl/tenancy and spatie/laravel-multitenancy automate this pattern. For PostgreSQL schema-based multi-tenancy (single database, multiple schemas), use SET search_path instead of separate databases."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "SQLSTATE[28P01] Password Authentication Failed for User",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-28p01-password-authentication-failed-credentials",
+      "root_cause": "PostgreSQL rejects the connection with SQLSTATE[28P01] when the provided username/password combination doesn't match any entry in pg_hba.conf authentication rules or the pg_authid system catalog. In Laravel, this typically happens when .env credentials don't match the PostgreSQL user's actual password, when pg_hba.conf requires a different authentication method (e.g., peer or ident instead of md5/scram-sha-256), when the database user doesn't exist, or when using Docker where the POSTGRES_PASSWORD is set on first initialization only and changing it in docker-compose.yml after volume creation has no effect.",
+      "symptoms": [
+        "SQLSTATE[28P01]: Invalid authorization specification: password authentication failed for user",
+        "Laravel app failing to connect after changing database password in .env without updating PostgreSQL",
+        "Docker containers failing to connect after rebuilding with different POSTGRES_PASSWORD",
+        "Connection working via psql but failing from Laravel due to different pg_hba.conf rules for different hosts",
+        "CI/CD pipeline failures when database credentials don't match the PostgreSQL instance"
+      ],
+      "fix_steps": [
+        "Verify credentials manually: run psql -h DB_HOST -p DB_PORT -U DB_USERNAME -d DB_DATABASE to test the connection with the same credentials as your .env",
+        "Check pg_hba.conf authentication method: ensure the rule for your application's IP uses md5 or scram-sha-256, not peer or ident which ignore passwords",
+        "Reset the PostgreSQL user password: ALTER USER myapp WITH PASSWORD 'newpassword' and update .env to match",
+        "For Docker, if changing POSTGRES_PASSWORD doesn't work, delete the PostgreSQL volume and recreate: docker-compose down -v && docker-compose up -d",
+        "Verify .env is being read correctly: run php artisan tinker and check config('database.connections.pgsql.password') to ensure the password isn't being truncated or escaped",
+        "Check for special characters in passwords: if your password contains #, $, or quotes, ensure they're properly escaped in .env (wrap the value in double quotes)"
+      ],
+      "example_code": {
+        "before": "// .env — credentials don't match PostgreSQL\nDB_CONNECTION=pgsql\nDB_HOST=127.0.0.1\nDB_PORT=5432\nDB_DATABASE=myapp\nDB_USERNAME=myapp\nDB_PASSWORD=wrong_password  // doesn't match PostgreSQL user\n\n// Or: password with special characters not escaped\nDB_PASSWORD=p@ss#word$123  // # starts a comment in .env!",
+        "after": "// Fix 1: Correct credentials in .env\nDB_CONNECTION=pgsql\nDB_HOST=127.0.0.1\nDB_PORT=5432\nDB_DATABASE=myapp\nDB_USERNAME=myapp\nDB_PASSWORD=\"p@ss#word$123\"  // wrap in quotes for special chars\n\n// Fix 2: Reset PostgreSQL password\n// psql -U postgres\n// ALTER USER myapp WITH PASSWORD 'new_secure_password';\n\n// Fix 3: Check pg_hba.conf rules\n// /etc/postgresql/16/main/pg_hba.conf\n// # TYPE  DATABASE  USER    ADDRESS         METHOD\n// host    myapp     myapp   127.0.0.1/32    scram-sha-256\n// host    myapp     myapp   172.0.0.0/8     scram-sha-256  # Docker network\n\n// Fix 4: Verify in tinker\n// php artisan tinker\n// >>> config('database.connections.pgsql.password')\n// => \"p@ss#word$123\"  // verify it matches PostgreSQL\n// >>> DB::connection()->getPdo()  // test connection",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "authentication",
+        "connection",
+        "security",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Why does my PostgreSQL password work in psql but not in Laravel?",
+          "answer": "pg_hba.conf rules are matched by connection type and source address. When you connect via psql on the same machine, the 'local' rule applies (often using 'peer' authentication which uses your OS username, ignoring the password). When Laravel connects via TCP (host), a different rule applies that requires password authentication. Check pg_hba.conf for both 'local' and 'host' entries. Also, psql may use a different port or host than Laravel. Verify by matching DB_HOST, DB_PORT, DB_USERNAME from your .env exactly in your psql command: psql -h 127.0.0.1 -p 5432 -U myapp -d myapp."
+        },
+        {
+          "question": "How do I handle special characters in PostgreSQL passwords in Laravel .env?",
+          "answer": "Wrap the password value in double quotes in your .env file, for example DB_PASSWORD='my#complex$pass' (with the value wrapped in quotes). Without quotes, characters like # (comment marker), $ (variable expansion in some shells), and whitespace will cause the value to be truncated or misinterpreted. Laravel Dotenv parser handles quoted values correctly, preserving all special characters. If your password contains quote characters, escape them with a backslash. For maximum safety, use only alphanumeric characters and standard symbols in database passwords."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[42883] Function Does Not Exist in PostgreSQL",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-42883-function-does-not-exist-uuid-generate-v4",
+      "root_cause": "PostgreSQL throws SQLSTATE[42883] when a query calls a function that doesn't exist in the current schema search_path. Unlike MySQL which has many built-in functions, PostgreSQL distributes additional functions through extensions that must be explicitly enabled with CREATE EXTENSION. The most common case in Laravel is uuid_generate_v4() from the uuid-ossp extension, but it also affects functions from pg_trgm (similarity, trigram matching), hstore, citext, and other popular extensions. In modern PostgreSQL (13+), gen_random_uuid() is available without any extension, making it the preferred choice for UUID generation.",
+      "symptoms": [
+        "SQLSTATE[42883]: Undefined function: ERROR: function uuid_generate_v4() does not exist",
+        "Migrations failing when using ->default(DB::raw('uuid_generate_v4()'))",
+        "Full-text search queries failing because pg_trgm extension isn't enabled",
+        "Citext column creation failing because the citext extension isn't installed",
+        "Custom database functions working in development but missing in staging/production environments"
+      ],
+      "fix_steps": [
+        "Check if the extension is installed: run SELECT * FROM pg_extension to list all installed extensions",
+        "Install the required extension: run CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\" in a Laravel migration using DB::statement()",
+        "For UUID generation, prefer gen_random_uuid() (built-in since PostgreSQL 13) over uuid_generate_v4() which requires the uuid-ossp extension",
+        "Create extensions in a dedicated migration that runs first: name it something like 0001_01_01_000000_create_extensions.php",
+        "Ensure the database user has permission to create extensions: the user must be a superuser or have the CREATE privilege on the database",
+        "For cloud-managed PostgreSQL (RDS, Cloud SQL), check which extensions are available — not all extensions are supported in managed environments"
+      ],
+      "example_code": {
+        "before": "// Problem: using uuid_generate_v4() without the extension\nSchema::create('orders', function (Blueprint $table) {\n    $table->uuid('id')->primary()->default(DB::raw('uuid_generate_v4()'));\n    // SQLSTATE[42883] if uuid-ossp extension not installed\n});",
+        "after": "// Fix 1: Use gen_random_uuid() (built-in, no extension needed, PostgreSQL 13+)\nSchema::create('orders', function (Blueprint $table) {\n    $table->uuid('id')->primary()->default(DB::raw('gen_random_uuid()'));\n    $table->timestamps();\n});\n\n// Fix 2: Create extensions in a dedicated early migration\n// database/migrations/0001_01_01_000000_create_extensions.php\nclass CreateExtensions extends Migration\n{\n    public function up(): void\n    {\n        DB::statement('CREATE EXTENSION IF NOT EXISTS \"uuid-ossp\"');\n        DB::statement('CREATE EXTENSION IF NOT EXISTS \"pg_trgm\"');\n        DB::statement('CREATE EXTENSION IF NOT EXISTS \"citext\"');\n    }\n\n    public function down(): void\n    {\n        DB::statement('DROP EXTENSION IF EXISTS \"citext\"');\n        DB::statement('DROP EXTENSION IF EXISTS \"pg_trgm\"');\n        DB::statement('DROP EXTENSION IF EXISTS \"uuid-ossp\"');\n    }\n}\n\n// Fix 3: Use Laravel's HasUuids trait (generates UUID in PHP, no DB function needed)\nclass Order extends Model\n{\n    use HasUuids;\n\n    // UUID generated by PHP, no database extension required\n}",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "extensions",
+        "uuid",
+        "database",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "Should I use uuid_generate_v4() or gen_random_uuid() in Laravel PostgreSQL?",
+          "answer": "Use gen_random_uuid() for new projects. It's built into PostgreSQL 13+ without requiring any extension, generates RFC 4122 v4 UUIDs, and uses a cryptographically strong random number generator. uuid_generate_v4() from the uuid-ossp extension is functionally equivalent but requires the extension to be installed. If you need UUID v1 (timestamp-based) or v5 (name-based), you still need uuid-ossp. Alternatively, use Laravel's HasUuids trait to generate UUIDs in PHP, which works regardless of the database and gives you more control over the UUID version and generation strategy."
+        },
+        {
+          "question": "How do I install PostgreSQL extensions in Laravel migrations?",
+          "answer": "Create an early migration (e.g., 0001_01_01_000000_create_extensions.php) that runs before any table creation migrations. Use DB::statement('CREATE EXTENSION IF NOT EXISTS \"extension_name\"'). The IF NOT EXISTS clause makes it idempotent. Note: the database user must have superuser privileges or the CREATE privilege. In managed PostgreSQL (AWS RDS), use the rds_superuser role. In Cloud SQL, use cloudsqlsuperuser. Some extensions may not be available in managed environments — check your provider's documentation for the list of supported extensions."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "SQLSTATE[22003] Numeric Value Out of Range Integer Overflow",
+      "framework": "laravel",
+      "slug": "laravel-postgresql-22003-numeric-value-out-of-range-bigint-migration",
+      "root_cause": "PostgreSQL enforces strict numeric range limits for integer types. A standard integer column (int4) holds values from -2,147,483,648 to 2,147,483,647. When a value exceeds this range — most commonly an auto-incrementing primary key on a high-volume table, a financial calculation exceeding integer limits, or a Unix timestamp stored as integer — PostgreSQL rejects the operation with SQLSTATE[22003]. In Laravel, this becomes critical when tables with $table->id() (which creates a 4-byte integer by default) approach 2.1 billion rows, or when storing large numeric values like cent-based monetary amounts that exceed integer range during multiplication.",
+      "symptoms": [
+        "SQLSTATE[22003]: Numeric value out of range: ERROR: integer out of range",
+        "Auto-incrementing primary key reaching the 2.1 billion integer limit on high-volume tables",
+        "Financial calculations overflowing when multiplying prices by large quantities",
+        "Unix timestamp storage failing for dates beyond 2038 (the Y2K38 problem)",
+        "Batch import operations failing on records with large numeric values that exceed int4 range"
+      ],
+      "fix_steps": [
+        "Identify the column causing the overflow: the error message references the specific table — check the column type with \\d+ tablename in psql",
+        "For ID columns approaching the limit, migrate from integer to bigint: ALTER TABLE tablename ALTER COLUMN id TYPE bigint",
+        "In Laravel migrations, use $table->bigIncrements('id') or $table->id() (which uses bigint since Laravel 5.8) for new tables expected to have high row counts",
+        "For existing tables, create a migration: DB::statement('ALTER TABLE tablename ALTER COLUMN id TYPE bigint') — this rewrites the entire table, so schedule during maintenance windows",
+        "For financial columns, use decimal/numeric types: $table->decimal('amount', 19, 4) instead of integer to avoid overflow during calculations",
+        "Monitor your sequence values: SELECT last_value FROM tablename_id_seq to check how close your auto-increment is to the integer limit"
+      ],
+      "example_code": {
+        "before": "// Problem: integer primary key approaching 2.1 billion limit\nSchema::create('events', function (Blueprint $table) {\n    $table->increments('id'); // creates int4, max ~2.1 billion\n    $table->string('type');\n    $table->timestamps();\n});\n// After 2+ billion inserts:\n// SQLSTATE[22003]: integer out of range\n\n// Or: financial calculation overflow\n$total = $price * $quantity; // 50000 * 100000 = 5,000,000,000 > int4 max",
+        "after": "// Fix 1: Use bigInteger for high-volume tables\nSchema::create('events', function (Blueprint $table) {\n    $table->id(); // bigint since Laravel 5.8\n    $table->string('type');\n    $table->timestamps();\n});\n\n// Fix 2: Migrate existing column from int to bigint\nSchema::table('events', function (Blueprint $table) {\n    // This rewrites the table — lock and maintenance window required\n    DB::statement('ALTER TABLE events ALTER COLUMN id TYPE bigint');\n});\n\n// Fix 3: Use decimal for financial data\nSchema::create('transactions', function (Blueprint $table) {\n    $table->id();\n    $table->decimal('amount', 19, 4); // handles very large amounts\n    $table->decimal('quantity', 12, 2);\n    $table->timestamps();\n});\n\n// Fix 4: Monitor sequence usage proactively\n// Add this to your monitoring/health check\n$seqInfo = DB::selectOne(\"\n    SELECT\n        schemaname,\n        sequencename,\n        last_value,\n        CASE data_type\n            WHEN 'integer' THEN round(last_value::numeric / 2147483647 * 100, 2)\n            WHEN 'bigint' THEN round(last_value::numeric / 9223372036854775807 * 100, 6)\n        END as usage_pct\n    FROM pg_sequences\n    WHERE sequencename = 'events_id_seq'\n\");",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "postgresql",
+        "data-types",
+        "migrations",
+        "scalability",
+        "laravel-error-guide"
+      ],
+      "faqs": [
+        {
+          "question": "When should I use bigint vs integer for PostgreSQL primary keys in Laravel?",
+          "answer": "Use bigint (Laravel's $table->id()) for any table that could grow to millions of rows: events, logs, analytics, transactions, messages, notifications. Use integer only for lookup tables with a known small number of rows (countries, categories, roles). Since Laravel 5.8, $table->id() already creates bigint, so this is only a concern for older applications. Storage difference is minimal: bigint uses 8 bytes vs 4 bytes for integer. The performance difference is negligible on modern hardware, so defaulting to bigint is the safer choice for all new tables."
+        },
+        {
+          "question": "How do I safely migrate a PostgreSQL integer primary key to bigint in production?",
+          "answer": "ALTER TABLE ... ALTER COLUMN id TYPE bigint requires an ACCESS EXCLUSIVE lock and rewrites the entire table. For large tables (millions of rows), this can take minutes to hours and blocks all reads and writes. Strategies for production: (1) For tables under 1M rows, schedule during a maintenance window — it completes in seconds. (2) For larger tables, use pg_repack or a tool like pgloader to do an online conversion. (3) Create a new bigint column, backfill it, swap columns with renames, and update the sequence. (4) For very large tables, consider logical replication to a new table with the correct schema. Always test on a copy of production data first to estimate the time required."
+        }
+      ],
+      "difficulty": "intermediate"
+    }
+  ]
+}

@@ -2,7 +2,13 @@ import fs from "node:fs";
 import path from "node:path";
 
 const BLOG_DIR = path.resolve("src/data/blog");
-const PSEO_DIRS = ["high-performance-laravel", "advanced-postgresql-laravel"];
+
+// Auto-discover all hub directories under the blog data dir
+const PSEO_DIRS = fs.existsSync(BLOG_DIR)
+  ? fs.readdirSync(BLOG_DIR, { withFileTypes: true })
+      .filter(d => d.isDirectory())
+      .map(d => d.name)
+  : [];
 
 interface ValidationResult {
   file: string;

@@ -11,9 +11,9 @@
     "format:check": "prettier --check .",
     "format": "prettier --write .",
     "lint": "eslint .",
-    "generate:pseo": "tsx scripts/generate-pseo.ts --model all",
-    "validate:pseo": "tsx scripts/validate-pseo.ts",
-    "automate:pseo": "tsx scripts/automate-pseo.ts"
+    "generate:pseo": "node --import tsx scripts/generate-pseo.ts --model all",
+    "validate:pseo": "node --import tsx scripts/validate-pseo.ts",
+    "automate:pseo": "node --import tsx scripts/automate-pseo.ts"
   },
   "dependencies": {
     "@astrojs/rss": "^4.0.17",
@@ -44,6 +44,7 @@
     "prettier": "^3.7.4",
     "prettier-plugin-astro": "^0.14.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "tsx": "^4.21.0",
     "typescript": "^5.9.3",
     "typescript-eslint": "^8.51.0"
   }
