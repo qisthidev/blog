@@ -1,0 +1,12 @@
+Nginx 504 Gateway Timeout with Laravel and PHP-FPM
+Nginx upstream sent too big header with Laravel sessions/cookies
+connect() to unix socket failed: No such file or directory with Laravel PHP-FPM
+Primary script unknown with Laravel Nginx root/fastcgi_param mismatch
+PHP-FPM server reached pm.max_children setting in Laravel production
+Redis READONLY You can't write against a read only replica in Laravel
+Redis MISCONF stop-writes-on-bgsave-error in Laravel cache and queues
+Redis OOM command not allowed when used memory > maxmemory in Laravel
+Laravel Horizon jobs stuck in pending or reserved state
+Supervisor exited too quickly for Laravel queue workers
+Laravel Reverb WebSocket handshake failed behind Nginx reverse proxy
+Laravel Octane 502 Bad Gateway after deploy from stale workers or socket issues

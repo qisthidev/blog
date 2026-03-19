@@ -1,0 +1,579 @@
+{
+  "model": "errors",
+  "hub": "laravel-infrastructure-troubleshooting",
+  "hub_title": "Laravel Infrastructure Troubleshooting Guide",
+  "hub_description": "Production troubleshooting guides for Laravel infrastructure failures across Nginx, PHP-FPM, Redis, Horizon, Octane, and Reverb. Each article explains the symptoms, root cause, and production-tested fix with real configuration and code examples.",
+  "hub_tags": [
+    "laravel",
+    "production",
+    "debugging",
+    "devops-and-infrastructure",
+    "infrastructure"
+  ],
+  "entries": [
+    {
+      "error_message": "Nginx 504 Gateway Timeout with Laravel PHP-FPM",
+      "framework": "laravel",
+      "slug": "laravel-nginx-504-gateway-timeout-php-fpm",
+      "root_cause": "A 504 Gateway Timeout happens when Nginx successfully proxies the request to PHP-FPM but does not receive a complete response before its upstream timeout expires. In Laravel applications, this usually means the PHP worker is blocked by a slow database query, a synchronous export, an external API call, or a queue-like task that should never have stayed inside the request cycle. The problem is often misdiagnosed as a pure Nginx issue, but the real bottleneck is usually inside PHP-FPM capacity or the application code path. If your PHP-FPM pool is saturated, Nginx may wait on an idle worker first and then also wait on the slow request itself, making 504s appear random under production traffic.",
+      "symptoms": [
+        "Users intermittently receive 504 Gateway Timeout responses on report, export, or admin pages",
+        "Nginx access logs show long request durations ending in status 504",
+        "PHP-FPM workers stay busy for tens of seconds during traffic spikes",
+        "Database slow query logs or external API logs line up with the failed requests",
+        "The same page works locally but fails in production when data volume is much larger"
+      ],
+      "fix_steps": [
+        "Confirm where the time is spent by correlating Nginx request duration, PHP-FPM slow logs, Laravel application logs, and database slow query logs for the exact failing endpoint.",
+        "Move long-running work out of the request cycle by dispatching a queued job for exports, imports, backups, and third-party API fan-out instead of making the browser wait for completion.",
+        "Review PHP-FPM pool pressure with process metrics and raise `pm.max_children` only after calculating memory per worker so you do not trade 504s for OOM kills.",
+        "Set `fastcgi_read_timeout` high enough for legitimate long requests, but do not use large timeouts to hide application bottlenecks that should be optimized or queued.",
+        "Profile the Laravel code path with Telescope, Pulse, or query logging so you can eliminate N+1 queries, missing indexes, and expensive collection work before adjusting infrastructure knobs.",
+        "After fixing the root cause, load-test the endpoint again and verify that 95th percentile response time stays comfortably below your Nginx and PHP-FPM timeout thresholds."
+      ],
+      "example_code": {
+        "before": "# nginx.conf\\nlocation ~ \\\\.php$ {\\n    include fastcgi_params;\\n    fastcgi_pass unix:/run/php/php8.3-fpm.sock;\\n    fastcgi_read_timeout 60s;\\n}\\n\\n// Controller\\npublic function export()\\n{\\n    $rows = Order::with(['customer', 'items.product'])->get();\\n    return Excel::download(new OrdersExport($rows), 'orders.xlsx');\\n}",
+        "after": "# nginx.conf\\nlocation ~ \\\\.php$ {\\n    include fastcgi_params;\\n    fastcgi_pass unix:/run/php/php8.3-fpm.sock;\\n    fastcgi_read_timeout 180s; // only after profiling the real bottleneck\\n}\\n\\n// Controller\\npublic function export()\\n{\\n    ExportOrders::dispatch(auth()->id());\\n    return response()->json(['status' => 'queued']);\\n}\\n\\n// www.conf\\npm = dynamic\\npm.max_children = 40\\nrequest_slowlog_timeout = 10s\\nslowlog = /var/log/php8.3-fpm-slow.log",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "nginx",
+        "php-fpm",
+        "timeouts"
+      ],
+      "faqs": [
+        {
+          "question": "Should I just increase fastcgi_read_timeout to fix Laravel 504 errors?",
+          "answer": "Only after you know why the request is slow. Increasing `fastcgi_read_timeout` can reduce false positives for legitimate heavy endpoints, but it does not fix blocked PHP-FPM workers, missing indexes, synchronous file generation, or slow external services. In many Laravel apps the better fix is to queue the work, optimize the query, or add worker capacity. Treat longer timeouts as a safety margin, not as the primary solution."
+        },
+        {
+          "question": "How do I tell whether a Laravel 504 is caused by Nginx, PHP-FPM, or the application code?",
+          "answer": "Start with the request timeline. Nginx tells you when it gave up, PHP-FPM tells you whether workers were busy or slow, and Laravel logs tell you which route or job was executing. If the same endpoint always spikes database time, the root cause is application or database work. If all endpoints fail during bursts and PHP-FPM is saturated, capacity is the first thing to fix."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Nginx Too Big Header with Laravel Sessions and Cookies",
+      "framework": "laravel",
+      "slug": "laravel-nginx-upstream-sent-too-big-header-sessions-cookies",
+      "root_cause": "This Nginx error appears when the upstream response headers generated by Laravel or PHP exceed the buffer space Nginx allows for FastCGI or proxy headers. In real Laravel apps, the most common causes are oversized encrypted cookies, storing too much state in the cookie session driver, repeated flash data, or packages that add many headers during authentication and redirects. The infrastructure symptom is Nginx complaining about buffers, but the application design problem is usually that too much session data is being serialized into cookies or too many headers are being emitted during one response. Raising buffers can buy room, but if you keep large sessions in cookies the error will come back during login flows, admin panels, and multi-redirect sequences.",
+      "symptoms": [
+        "Users hit a 502 or blank error page during login or redirect-heavy flows",
+        "Nginx error logs contain `upstream sent too big header while reading response header from upstream`",
+        "The issue appears more often for authenticated users than for guests",
+        "Cookie size grows after multiple flashes, carts, or wizard-style forms",
+        "Switching to a fresh browser profile temporarily reduces the problem"
+      ],
+      "fix_steps": [
+        "Inspect the failing response in browser devtools and measure the total `Set-Cookie` size so you can confirm whether session or application cookies are the dominant contributor.",
+        "Move away from the cookie session driver for stateful production workloads and use Redis or database sessions so only a small session identifier lives in the browser cookie.",
+        "Audit custom middleware and packages that repeatedly append headers, cookies, or flash messages during redirects because these often create the largest spikes.",
+        "Increase `fastcgi_buffer_size` and `fastcgi_buffers` enough for realistic response headers after you reduce the root cause, especially on admin or SSO-heavy routes.",
+        "Trim session payloads by removing large arrays, pre-rendered data, or temporary objects from `session()` and by clearing flash data once it is consumed.",
+        "Retest the exact login or checkout flow with realistic cookies and ensure the new buffer settings and session design survive multiple redirects in one browser session."
+      ],
+      "example_code": {
+        "before": "// .env\\nSESSION_DRIVER=cookie\\n\\n// Controller\\nsession(['checkout_payload' => $veryLargeArray]);\\nreturn redirect()->route('checkout.confirm');\\n\\n# nginx.conf\\nfastcgi_buffer_size 8k;\\nfastcgi_buffers 4 8k;",
+        "after": "// .env\\nSESSION_DRIVER=redis\\n\\n// Controller\\nsession(['checkout_id' => $checkout->id]);\\nreturn redirect()->route('checkout.confirm');\\n\\n# nginx.conf\\nfastcgi_buffer_size 32k;\\nfastcgi_buffers 16 16k;\\nfastcgi_busy_buffers_size 64k;",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "nginx",
+        "sessions",
+        "cookies"
+      ],
+      "faqs": [
+        {
+          "question": "Is increasing Nginx buffer sizes enough to fix `upstream sent too big header` in Laravel?",
+          "answer": "Not by itself. Larger buffers help Nginx accept bigger headers, but they do not solve the underlying reason the headers became too large. In Laravel that reason is often cookie-based sessions or repeated `Set-Cookie` headers during auth redirects. The reliable fix is to reduce cookie payload size first, then tune buffers so legitimate responses have safe headroom."
+        },
+        {
+          "question": "Why does this error often show up only after login and not on public pages?",
+          "answer": "Authenticated flows typically set or rotate more cookies, store more flash data, and trigger redirect chains through middleware, SSO, or two-factor checks. Public pages usually send a much smaller header set. That is why the same infrastructure seems fine for guests but fails when users sign in, switch accounts, or move through multi-step forms."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Laravel PHP-FPM Unix Socket File Missing",
+      "framework": "laravel",
+      "slug": "laravel-php-fpm-unix-socket-no-such-file-or-directory",
+      "root_cause": "Nginx throws this error when it is configured to send PHP requests to a Unix socket path that does not exist at request time. The missing socket usually means PHP-FPM is not running, is listening on a different versioned socket path, failed to start because of invalid pool configuration, or created the socket with permissions Nginx cannot use. This is common after PHP version upgrades, distro package changes, or deploy scripts that restart Nginx before PHP-FPM has fully come back. The message points at Nginx, but the durable fix is to align the `fastcgi_pass` target, the PHP-FPM `listen` directive, and the service startup order.",
+      "symptoms": [
+        "Every PHP route returns 502 Bad Gateway immediately after a deploy or reboot",
+        "Nginx error logs show `connect() to unix:/run/php/... failed (2: No such file or directory)`",
+        "Static assets still work because Nginx itself is healthy",
+        "The socket path in `/run/php` differs from the one in the Nginx site config",
+        "Restarting PHP-FPM temporarily fixes the issue until the next version or service change"
+      ],
+      "fix_steps": [
+        "Check the exact socket path Nginx is trying to use in the site configuration and compare it with the `listen` directive in the active PHP-FPM pool configuration.",
+        "Verify the PHP-FPM service is running with `systemctl status` and inspect its journal for syntax errors, missing extensions, or permission failures that prevented startup.",
+        "Align the socket path after PHP upgrades so Nginx and PHP-FPM both use the same versioned file such as `php8.3-fpm.sock` rather than a stale path.",
+        "Confirm socket ownership and mode using `listen.owner`, `listen.group`, and `listen.mode` so the Nginx user can actually open the file after PHP-FPM creates it.",
+        "Restart PHP-FPM first and Nginx second during deploys or package upgrades so Nginx never points at a socket that has not been created yet.",
+        "Retest with `nginx -t`, `systemctl restart php-fpm`, and a live request to ensure the socket exists, permissions are correct, and the site responds before you close the incident."
+      ],
+      "example_code": {
+        "before": "# nginx\\nfastcgi_pass unix:/run/php/php8.3-fpm.sock;\\n\\n; www.conf\\nlisten = /run/php/php8.4-fpm.sock\\nlisten.owner = www-data\\nlisten.group = www-data",
+        "after": "# nginx\\nfastcgi_pass unix:/run/php/php8.4-fpm.sock;\\n\\n; www.conf\\nlisten = /run/php/php8.4-fpm.sock\\nlisten.owner = www-data\\nlisten.group = www-data\\nlisten.mode = 0660\\n\\n# deploy order\\nsystemctl restart php8.4-fpm\\nsystemctl reload nginx",
+        "language": "ini"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "php-fpm",
+        "nginx",
+        "unix-socket"
+      ],
+      "faqs": [
+        {
+          "question": "Should I switch from a Unix socket to TCP to avoid this Laravel PHP-FPM error?",
+          "answer": "You can, but it is not automatically the best fix. Unix sockets are fast and perfectly reliable when the path, permissions, and service order are correct. Switching to TCP may simplify some container or multi-host setups, but it also changes your network surface and does not solve bad restart sequencing or broken PHP-FPM startup. Fix the configuration mismatch first, then decide based on architecture."
+        },
+        {
+          "question": "Why does the socket path often break right after a PHP upgrade?",
+          "answer": "Distribution packages usually version the socket file, so a move from PHP 8.3 to 8.4 changes the default path from something like `php8.3-fpm.sock` to `php8.4-fpm.sock`. If Nginx still points at the old filename, it will keep trying to connect to a file that will never be created. That is why upgrade checklists should always include both Nginx and PHP-FPM config review."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "Laravel Primary Script Unknown from Nginx Root Mismatch",
+      "framework": "laravel",
+      "slug": "laravel-nginx-primary-script-unknown-fastcgi-param-root",
+      "root_cause": "The `Primary script unknown` error means PHP-FPM received a script path that does not exist from Nginx. In Laravel deployments this usually happens because the Nginx `root` points at the project root instead of the `public` directory, the `SCRIPT_FILENAME` parameter is built from the wrong variable, or a symlink-based deploy changes the real path while Nginx still resolves an outdated location. PHP-FPM is healthy in this case, but it cannot open the file Nginx told it to execute. The fix is to make the document root, `try_files`, and `SCRIPT_FILENAME` all resolve to the same real path for `public/index.php`.",
+      "symptoms": [
+        "Nginx shows 404 or 502 behavior only for PHP routes while static files may still load",
+        "Error logs contain `Primary script unknown` or `Unable to open primary script`",
+        "The issue appears after changing the deploy path or using symlink releases",
+        "CLI commands like `php artisan route:list` work even though web requests fail",
+        "Requests to `/index.php` or routed pages break while the Nginx virtual host itself is online"
+      ],
+      "fix_steps": [
+        "Confirm the active document root points to Laravel's `public` directory and not to the project root, shared storage path, or a stale release symlink.",
+        "Check the FastCGI block and ensure `SCRIPT_FILENAME` is derived from `$realpath_root$fastcgi_script_name` or the correct equivalent for your deploy strategy.",
+        "Use `try_files $uri $uri/ /index.php?$query_string;` in the main location block so Laravel routing always resolves through the front controller.",
+        "If you deploy through symlinks, reload Nginx after switching releases so `realpath` values and file cache state match the current release directory.",
+        "Review open_basedir or chroot-style restrictions in PHP-FPM if the file exists but PHP still cannot open it under the configured pool user.",
+        "Retest with `nginx -t`, `php-fpm -t`, and a curl request to `/` and `/index.php` so you verify both routing and direct front-controller access behave correctly."
+      ],
+      "example_code": {
+        "before": "server {\\n    root /var/www/myapp;\\n\\n    location / {\\n        try_files $uri $uri/ /index.php?$query_string;\\n    }\\n\\n    location ~ \\\\.php$ {\\n        include fastcgi_params;\\n        fastcgi_param SCRIPT_FILENAME $document_root$fastcgi_script_name;\\n        fastcgi_pass unix:/run/php/php8.3-fpm.sock;\\n    }\\n}",
+        "after": "server {\\n    root /var/www/myapp/current/public;\\n\\n    location / {\\n        try_files $uri $uri/ /index.php?$query_string;\\n    }\\n\\n    location ~ \\\\.php$ {\\n        include fastcgi_params;\\n        fastcgi_param SCRIPT_FILENAME $realpath_root$fastcgi_script_name;\\n        fastcgi_param DOCUMENT_ROOT $realpath_root;\\n        fastcgi_pass unix:/run/php/php8.3-fpm.sock;\\n    }\\n}",
+        "language": "nginx"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "nginx",
+        "php-fpm",
+        "deployments"
+      ],
+      "faqs": [
+        {
+          "question": "Why does Laravel show `Primary script unknown` even though `index.php` exists on disk?",
+          "answer": "Because PHP-FPM does not look for files on its own. It tries to open exactly the path Nginx passes through `SCRIPT_FILENAME`. If that path is wrong due to an incorrect root, a bad symlink, or mismatched variables, PHP-FPM will report that the primary script is unknown even if the right file exists somewhere else in the release directory. Always debug the resolved path, not just file existence."
+        },
+        {
+          "question": "Is `$document_root` or `$realpath_root` better for Laravel Nginx configs?",
+          "answer": "For simple non-symlinked deployments, either can work if the root is correct. In symlink-based release setups, `$realpath_root` is safer because it resolves the actual filesystem path instead of the symbolic link path. That reduces weirdness when deploy tools switch `current` to a new release and PHP-FPM needs the resolved absolute path for `SCRIPT_FILENAME`."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Laravel PHP-FPM pm.max_children Exhausted in Production",
+      "framework": "laravel",
+      "slug": "laravel-php-fpm-pm-max-children-production",
+      "root_cause": "This warning means every available PHP-FPM worker is already busy and the pool cannot accept more concurrent Laravel requests. The immediate symptom is queueing, slow responses, and eventually 502 or 504 errors from Nginx, but the deeper causes are usually undersized pool settings, long-running controller actions, blocked database queries, or memory sizing that forced you to keep `pm.max_children` artificially low. Many teams increase the value blindly, only to trigger memory pressure or OOM kills because each worker is much larger than expected. The durable fix is to measure worker memory usage, reduce request time, and then size the pool based on actual server capacity.",
+      "symptoms": [
+        "PHP-FPM logs warn that the pool reached `pm.max_children`",
+        "Nginx response time spikes during bursts even though CPU usage may not be maxed out",
+        "Laravel pages become slow whenever exports, reports, or heavy dashboards are opened",
+        "Memory usage climbs dangerously when you raise the worker count without profiling",
+        "User-facing failures disappear temporarily after restarting PHP-FPM"
+      ],
+      "fix_steps": [
+        "Measure average and peak memory usage per PHP-FPM worker so you can calculate a safe upper bound for `pm.max_children` instead of guessing.",
+        "Profile the slowest routes and remove synchronous work such as exports, report building, image processing, or remote API fan-out that pins workers for too long.",
+        "Tune pool settings like `pm`, `pm.max_children`, `pm.start_servers`, and `pm.max_spare_servers` according to your traffic pattern and available RAM.",
+        "Enable the PHP-FPM slow log and Laravel performance tooling so you can identify the exact requests that occupy workers for abnormal durations.",
+        "Optimize database access by adding indexes, reducing eager-load explosions, and caching repeated reads so each worker finishes requests faster.",
+        "Load-test after the change and confirm worker utilization, memory headroom, and Nginx latency all improve together instead of shifting the bottleneck elsewhere."
+      ],
+      "example_code": {
+        "before": "; /etc/php/8.3/fpm/pool.d/www.conf\\npm = dynamic\\npm.max_children = 10\\npm.start_servers = 2\\npm.min_spare_servers = 1\\npm.max_spare_servers = 3\\n\\n# Symptoms: slow dashboards and queued requests during traffic bursts",
+        "after": "; /etc/php/8.3/fpm/pool.d/www.conf\\npm = dynamic\\npm.max_children = 40\\npm.start_servers = 8\\npm.min_spare_servers = 4\\npm.max_spare_servers = 12\\nrequest_slowlog_timeout = 10s\\nslowlog = /var/log/php8.3-fpm-slow.log\\n\\n# Controller fix\\npublic function index()\\n{\\n    return response()->json(Cache::remember('dashboard:summary', 60, fn () => $this->service->summary()));\\n}",
+        "language": "ini"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "php-fpm",
+        "capacity-planning",
+        "nginx"
+      ],
+      "faqs": [
+        {
+          "question": "Can I safely fix `pm.max_children` warnings by doubling the worker count?",
+          "answer": "Only if memory allows it. Every PHP-FPM worker consumes RAM, and real Laravel workers can be much larger than the tiny values people assume from blog posts. If you double the worker count without measuring process size, you may replace request queueing with swap thrash or OOM kills. Measure first, then increase pool size within the memory budget your server can actually sustain."
+        },
+        {
+          "question": "Why do I still hit `pm.max_children` even though CPU usage is low?",
+          "answer": "Because worker exhaustion is about concurrency and blocking time, not only CPU. A worker can spend most of its life waiting on the database, Redis, file I/O, or a remote HTTP API while still occupying one slot in the pool. That is why low CPU does not mean healthy capacity. You need to shorten request lifetime and right-size the pool together."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Redis READONLY on Laravel Writes to Replica",
+      "framework": "laravel",
+      "slug": "laravel-redis-readonly-replica-write-errors",
+      "root_cause": "This Redis error appears when Laravel sends a write command to a replica instead of the current primary node. In production this usually happens after a failover, a misconfigured managed Redis endpoint, or an app configuration that points all traffic at a read-only replica address. Queue pushes, cache writes, session updates, and Horizon metrics all fail because they require write access. The bug often survives deploys because the environment variables look valid, but the hostname behind them is no longer the writable node after a topology change or manual promotion.",
+      "symptoms": [
+        "Laravel logs show `READONLY You can't write against a read only replica` during cache or queue operations",
+        "Horizon dashboards stop updating even though workers are still running",
+        "Session writes fail after a Redis failover or maintenance window",
+        "Read-only commands such as `GET` keep working while `SET`, `LPUSH`, or `HSET` fail",
+        "The issue started after switching to a managed Redis cluster, Sentinel, or replicated service endpoint"
+      ],
+      "fix_steps": [
+        "Identify whether your application is connected to a primary endpoint, a replica endpoint, or a stale DNS target by checking the exact Redis host in the active Laravel configuration.",
+        "Use the managed service's writer endpoint or a properly configured Sentinel primary name for cache, queue, session, and Horizon write traffic rather than a node-specific replica host.",
+        "Separate read and write connections only when your application and client library explicitly support that topology, because Laravel queue and session traffic must always hit a writable node.",
+        "Clear and rebuild Laravel configuration cache after changing Redis environment variables so the application does not keep using stale endpoints from a previous deploy.",
+        "Verify failover behavior in staging or a maintenance window so you know whether your service endpoint follows the new primary automatically after promotion.",
+        "Once writes work again, inspect failed jobs, stale sessions, and dropped cache operations so you can clean up the backlog created while the application was pointed at the replica."
+      ],
+      "example_code": {
+        "before": "# .env\\nREDIS_HOST=redis-replica.internal\\nCACHE_STORE=redis\\nQUEUE_CONNECTION=redis\\nSESSION_DRIVER=redis\\n\\n// Queue push fails\\nProcessInvoice::dispatch($invoice);",
+        "after": "# .env\\nREDIS_HOST=redis-primary.internal\\nCACHE_STORE=redis\\nQUEUE_CONNECTION=redis\\nSESSION_DRIVER=redis\\n\\n# Or use a managed writer endpoint\\nREDIS_HOST=redis-writer.internal\\n\\nphp artisan config:clear\\nphp artisan config:cache",
+        "language": "dotenv"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "redis",
+        "failover",
+        "horizon"
+      ],
+      "faqs": [
+        {
+          "question": "Why do some Laravel pages still work when Redis says it is read-only?",
+          "answer": "Because not every request performs a write. Reads like cached lookups may continue to succeed against a replica, while writes such as session persistence, queue dispatching, cache updates, locks, and Horizon metrics fail immediately. That makes the incident look partial or random. If one code path writes and another only reads, both can hit the same Redis host and behave very differently."
+        },
+        {
+          "question": "Do I need to restart Laravel workers after fixing a Redis writer endpoint?",
+          "answer": "Usually yes. Queue workers and Horizon processes can keep old configuration in memory even after you update environment variables. Clear the config cache, then restart Horizon or your queue workers so every long-running process reconnects using the corrected endpoint. Otherwise the web app may recover while workers continue writing to the stale replica target."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Redis MISCONF Stop Writes on Bgsave Error in Laravel",
+      "framework": "laravel",
+      "slug": "laravel-redis-misconf-stop-writes-bgsave-error",
+      "root_cause": "The `MISCONF Redis is configured to save RDB snapshots, but it is currently unable to persist to disk` error means Redis blocked writes because background persistence failed and `stop-writes-on-bgsave-error` is enabled. In Laravel systems this knocks out cache sets, queue pushes, rate limiting, locks, and sometimes sessions all at once because the application treats Redis as always writable. The infrastructure root cause is usually disk-full conditions, bad filesystem permissions, read-only mounts, or container volume misconfiguration rather than a bug in Laravel itself. Teams often suppress the safety check, but that only hides the persistence failure and risks data loss later.",
+      "symptoms": [
+        "Laravel suddenly fails on cache, queue, lock, or rate-limit writes while Redis reads may still work",
+        "Redis logs mention failed RDB snapshots or inability to persist to disk",
+        "The server or container recently ran out of disk space or lost write permissions on the Redis data directory",
+        "Horizon cannot push new jobs and workers appear idle even though the app is receiving traffic",
+        "The issue begins after moving Redis to Docker, a new volume, or a smaller disk"
+      ],
+      "fix_steps": [
+        "Check Redis logs first to identify the exact persistence failure, because `MISCONF` is only the protective symptom and the useful detail is in the server log.",
+        "Inspect disk usage, inode usage, and volume mounts on the Redis host or container to confirm the process can write to its configured snapshot directory.",
+        "Fix filesystem ownership and permissions for the Redis user, especially after changing Docker volumes, system users, or backup directories.",
+        "Only after fixing the underlying storage issue should you consider toggling `stop-writes-on-bgsave-error`, and even then treat it as a temporary incident response tool rather than the final fix.",
+        "Flush or retry failed Laravel queue dispatches and cache writes after Redis recovers, because application errors that occurred during the incident will not automatically replay themselves.",
+        "Add storage monitoring and alerts for disk, snapshot failures, and Redis persistence health so you catch the infrastructure problem before Laravel starts dropping writes."
+      ],
+      "example_code": {
+        "before": "# redis.conf\\nsave 900 1\\ndir /data\\nstop-writes-on-bgsave-error yes\\n\\n# Container has no persistent writable volume mounted at /data",
+        "after": "# redis.conf\\nsave 900 1\\ndir /data\\nstop-writes-on-bgsave-error yes\\n\\n# docker-compose.yml\\nservices:\\n  redis:\\n    image: redis:7\\n    volumes:\\n      - redis-data:/data\\n\\n# After fixing storage\\nredis-cli INFO persistence",
+        "language": "ini"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "redis",
+        "queues",
+        "storage"
+      ],
+      "faqs": [
+        {
+          "question": "Should I disable `stop-writes-on-bgsave-error` to get Laravel working again?",
+          "answer": "Only as a temporary emergency measure, and only if you understand the data durability trade-off. The flag exists to stop Redis from pretending writes are safe when persistence is broken. If you disable it without fixing the storage problem, Laravel may appear healthy while Redis continues operating in a risky state. Fix disk space, permissions, or volume mounts first whenever possible."
+        },
+        {
+          "question": "Why does this Redis MISCONF error affect queues, cache, and rate limiting at the same time?",
+          "answer": "Because many Laravel features write to Redis even when they feel unrelated. Queue dispatches push jobs, caches set keys, locks create tokens, rate limiting increments counters, and sessions may store user state. If Redis blocks writes globally, all of those features fail together. That broad blast radius is a strong hint that the problem sits in shared infrastructure, not in one controller or job class."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Redis OOM maxmemory Errors in Laravel",
+      "framework": "laravel",
+      "slug": "laravel-redis-oom-maxmemory-command-not-allowed",
+      "root_cause": "This Redis error means the server has reached its `maxmemory` limit and the active eviction policy does not allow the incoming write to succeed. In Laravel environments it often appears when queues, cache, Horizon metrics, and sessions share one Redis instance without memory isolation or when `noeviction` is left enabled for a workload that constantly writes cache data. The application-level symptom may look like a queue outage or session failure, but the infrastructure issue is that Redis memory policy and workload shape do not match each other. If you do not separate critical data from disposable cache keys, one noisy feature can starve everything else.",
+      "symptoms": [
+        "Laravel logs show `OOM command not allowed when used memory > maxmemory`",
+        "Queue dispatches or cache writes fail during traffic spikes or large jobs",
+        "Redis memory usage sits at or near the configured limit for long periods",
+        "Horizon metrics or cached reports grow quickly and never get evicted",
+        "The issue is worst after enabling more caching without revisiting Redis capacity or eviction policy"
+      ],
+      "fix_steps": [
+        "Inspect `maxmemory`, `maxmemory-policy`, and key distribution so you know whether the failing writes are hitting a cache-heavy instance or one carrying critical queue and session data.",
+        "Separate Redis roles where possible by giving cache, queues, and sessions different instances or at least different connections with different operational expectations.",
+        "Use an eviction policy appropriate for cache-heavy workloads such as `allkeys-lru` or `volatile-lru`, but avoid relying on eviction for queue data that must not disappear silently.",
+        "Set realistic TTLs on cache entries and Horizon metrics so memory can be reclaimed automatically instead of growing forever under steady traffic.",
+        "Increase Redis memory only after you understand the growth pattern, because simply adding RAM can delay the incident while unbounded keys continue accumulating.",
+        "After the fix, monitor memory usage, evictions, and application error rates together so you can verify that Laravel write traffic is stable under peak production load."
+      ],
+      "example_code": {
+        "before": "# .env\\nCACHE_STORE=redis\\nQUEUE_CONNECTION=redis\\nSESSION_DRIVER=redis\\n\\n# redis.conf\\nmaxmemory 512mb\\nmaxmemory-policy noeviction\\n\\nCache::put('heavy-report:' . $id, $hugePayload, now()->addDay());",
+        "after": "# cache redis instance\\nmaxmemory 1gb\\nmaxmemory-policy allkeys-lru\\n\\n# queue/session redis instance\\nmaxmemory 512mb\\nmaxmemory-policy noeviction\\n\\nCache::put('heavy-report:' . $id, $compactPayload, now()->addMinutes(30));",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "redis",
+        "memory",
+        "horizon"
+      ],
+      "faqs": [
+        {
+          "question": "Is `noeviction` always wrong for Laravel Redis servers?",
+          "answer": "No. It can be the right choice for queues, sessions, and locks where silent eviction would be worse than a loud failure. The problem comes when you mix disposable cache data with critical queue data on the same instance and expect one policy to fit both. In that case Laravel needs either separate Redis roles or much more intentional TTL and memory design."
+        },
+        {
+          "question": "Why does Redis OOM sometimes break queues before I notice cache problems?",
+          "answer": "Because queue dispatches and Horizon bookkeeping are write-heavy and often occur continuously under load. A full Redis instance may still serve some reads while rejecting every new write. That makes the queue system look broken first, even though the real issue is shared memory exhaustion. Watch Redis memory and write error rates, not just app latency, to catch this earlier."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Laravel Horizon Jobs Stuck in Pending or Reserved State",
+      "framework": "laravel",
+      "slug": "laravel-horizon-jobs-stuck-pending-reserved",
+      "root_cause": "Jobs get stuck in `pending` or `reserved` when Laravel is successfully enqueueing work but the workers cannot complete the job lifecycle. The usual causes are workers not running, Horizon pointing at the wrong Redis connection, `retry_after` and worker `timeout` values being misaligned, fatal job crashes before delete or release, or queue processes that lost Redis connectivity. Reserved jobs are especially deceptive because they look like they were picked up, but they remain invisible to other workers until the reservation expires. The fix is to treat Horizon as a system of Redis, workers, Supervisor, and job runtime configuration together rather than as a dashboard-only problem.",
+      "symptoms": [
+        "Horizon shows a growing pending queue while throughput drops toward zero",
+        "Jobs remain in reserved state for longer than expected and do not complete",
+        "Workers appear online, but logs show repeated timeouts, memory exits, or Redis reconnects",
+        "Failed job counts stay low even though users report that background work never finishes",
+        "The incident starts after changing queue timeout, adding long-running jobs, or deploying new Redis settings"
+      ],
+      "fix_steps": [
+        "Confirm workers are truly running under Horizon or Supervisor and not just present in the dashboard, because stale processes and zombie supervisors can mislead the UI.",
+        "Align `retry_after` in `config/queue.php` so it is longer than the worker timeout, otherwise jobs can be re-reserved or left in confusing intermediate states.",
+        "Review Horizon and worker logs for fatal exits, memory limits, and lost Redis connections that stop jobs after reservation but before completion bookkeeping.",
+        "Check that Horizon uses the intended Redis connection and queue names, especially after introducing separate cache and queue Redis instances.",
+        "Audit long-running jobs and break them into smaller pieces or batches if they regularly exceed timeout budgets and monopolize reserved slots.",
+        "After configuration changes, terminate Horizon cleanly and restart it so every supervisor and worker process reloads the current queue, timeout, and Redis settings."
+      ],
+      "example_code": {
+        "before": "// config/queue.php\\n'redis' => [\\n    'driver' => 'redis',\\n    'retry_after' => 60,\\n],\\n\\n# Supervisor\\ncommand=php artisan horizon\\n\\n# Worker timeout\\nphp artisan horizon --timeout=90",
+        "after": "// config/queue.php\\n'redis' => [\\n    'driver' => 'redis',\\n    'retry_after' => 120,\\n],\\n\\n# Supervisor\\ndirectory=/var/www/myapp/current\\ncommand=/usr/bin/php artisan horizon\\nautostart=true\\nautorestart=true\\nstopwaitsecs=360\\n\\nphp artisan horizon:terminate",
+        "language": "php"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "horizon",
+        "redis",
+        "queues"
+      ],
+      "faqs": [
+        {
+          "question": "What is the difference between pending and reserved jobs in Laravel Horizon?",
+          "answer": "Pending jobs are still waiting in the queue and have not yet been claimed by a worker. Reserved jobs were claimed by a worker, but the system has not yet marked them complete, failed, or released back to the queue. If reserved jobs accumulate, it usually points to worker crashes, timeout mismatches, or jobs that hang after they are claimed rather than a simple enqueue problem."
+        },
+        {
+          "question": "Why can jobs stay reserved even when Horizon says workers are running?",
+          "answer": "Because the workers can be alive but unhealthy. They may be timing out, crashing after boot, pointing at the wrong Redis connection, or repeatedly reconnecting under network trouble. Horizon's presence indicators do not replace worker log inspection. When jobs are reserved but never complete, always check the process manager, Redis health, and timeout settings together."
+        }
+      ],
+      "difficulty": "advanced"
+    },
+    {
+      "error_message": "Supervisor Exited Too Quickly for Laravel Queue Workers",
+      "framework": "laravel",
+      "slug": "laravel-supervisor-exited-too-quickly-queue-workers",
+      "root_cause": "Supervisor prints `exited too quickly` when it repeatedly starts a process that immediately crashes before meeting its minimum successful runtime. For Laravel queue workers, the real causes are usually an invalid command path, wrong working directory, missing PHP binary, missing environment variables, permission issues on the release path, or a worker process that crashes at boot because the app cannot connect to Redis or the database. The message itself only describes the process manager behavior, not the application failure underneath. The fastest resolution path is to run the exact command manually as the same user and fix the first boot error before tuning Supervisor's retry behavior.",
+      "symptoms": [
+        "Supervisor logs show `entered FATAL state, too many start retries too quickly`",
+        "Queue jobs accumulate because workers never stay up long enough to process them",
+        "Running `supervisorctl status` shows workers bouncing between STARTING and BACKOFF",
+        "The queue command works for root but fails under the deploy or www-data user",
+        "The problem starts after a new release, PHP version change, or environment variable update"
+      ],
+      "fix_steps": [
+        "Run the worker command manually as the same Unix user configured in Supervisor so you can see the real boot error instead of the generic restart loop message.",
+        "Set the correct `directory` in the Supervisor program config so Laravel boots from the active release and can find `artisan`, `.env`, and vendor autoload files.",
+        "Use absolute paths for PHP and the Artisan command because PATH differences between interactive shells and Supervisor commonly break otherwise valid commands.",
+        "Verify that the configured user can read the release directory and write to `storage` and `bootstrap/cache`, since permission failures often crash the worker immediately.",
+        "Check boot dependencies such as Redis, database connectivity, and config cache state because a broken app container can make every worker exit before Supervisor considers it healthy.",
+        "After the underlying boot issue is fixed, reload Supervisor and confirm the worker stays in RUNNING state long enough to process real queue traffic."
+      ],
+      "example_code": {
+        "before": "[program:laravel-worker]\\ncommand=php artisan queue:work redis --sleep=3 --tries=3\\nuser=www-data\\nautostart=true\\nautorestart=true\\n\\n# Missing directory and absolute php path",
+        "after": "[program:laravel-worker]\\ndirectory=/var/www/myapp/current\\ncommand=/usr/bin/php artisan queue:work redis --sleep=3 --tries=3 --timeout=90\\nuser=www-data\\nautostart=true\\nautorestart=true\\nstartsecs=5\\nstdout_logfile=/var/www/myapp/current/storage/logs/worker.log\\nredirect_stderr=true",
+        "language": "ini"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "supervisor",
+        "queues",
+        "workers"
+      ],
+      "faqs": [
+        {
+          "question": "Why does Supervisor say Laravel workers exited too quickly when the command works in my shell?",
+          "answer": "Because Supervisor does not run with the exact same PATH, working directory, user, or environment variables as your interactive shell. A relative path that works in your terminal can fail under Supervisor. So can missing `.env` access, different PHP binaries, or permissions on the release directory. Always test the command as the configured Supervisor user and from the configured working directory."
+        },
+        {
+          "question": "Should I increase `startsecs` or `startretries` to fix this Supervisor error?",
+          "answer": "Only after you fix the real boot failure. Increasing retry-related settings can reduce noise or help with slow-starting services, but it will not fix a broken command, missing directory, or crashing Laravel bootstrap. If the worker dies immediately because Redis is unreachable or `artisan` cannot be found, more retries just repeat the same failure faster."
+        }
+      ],
+      "difficulty": "beginner"
+    },
+    {
+      "error_message": "Laravel Reverb WebSocket Handshake Failed Behind Nginx",
+      "framework": "laravel",
+      "slug": "laravel-reverb-websocket-handshake-failed-nginx-proxy",
+      "root_cause": "This handshake failure happens when Nginx proxies the Reverb endpoint as a normal HTTP request instead of upgrading it to a WebSocket connection. The most common reasons are missing `Upgrade` and `Connection` headers, putting the `/app` location behind a broader catch-all block, incorrect `REVERB_HOST` and `VITE_REVERB_HOST` separation, or a multi-proxy architecture where only one layer forwards the upgrade headers. Laravel Reverb itself may be running fine, but the browser never completes the protocol switch, so the app experiences connection failures that look like broadcasting bugs. Treat it as a reverse-proxy and environment-variable problem first, not as a queue or event broadcasting problem.",
+      "symptoms": [
+        "Browser devtools show failed WebSocket handshake or repeated reconnect attempts",
+        "Realtime features stop working even though `php artisan reverb:start` appears healthy",
+        "Nginx access logs show `/app` requests returning 400, 404, or 500 instead of status 101",
+        "The problem appears only in production behind Nginx and not in local direct connections",
+        "Double-proxy setups fail while single-server tests sometimes work"
+      ],
+      "fix_steps": [
+        "Verify that the `/app` location block is defined before broader application routes so Nginx does not route WebSocket traffic through normal Laravel handling.",
+        "Set the required proxy headers including `Upgrade` and `Connection` and ensure every proxy layer in front of Reverb forwards them, not just the innermost one.",
+        "Keep `REVERB_HOST` as the internal bind address such as `0.0.0.0` and use `VITE_REVERB_HOST` for the public browser-facing domain, because mixing them commonly breaks production handshakes.",
+        "Confirm the browser connects to the expected scheme and port, typically `wss` on `443`, while Reverb listens internally on its private port such as `8081`.",
+        "Check Reverb and Nginx logs together for the failing request so you can distinguish handshake rejection from an upstream connectivity problem.",
+        "After configuration changes, reload Nginx, restart Reverb, and test a real browser connection until you see a successful `101 Switching Protocols` response."
+      ],
+      "example_code": {
+        "before": "location /app {\\n    proxy_pass http://127.0.0.1:8081;\\n}\\n\\n# .env\\nREVERB_HOST=your-domain.com\\nVITE_REVERB_HOST=your-domain.com",
+        "after": "location /app {\\n    proxy_http_version 1.1;\\n    proxy_set_header Host $http_host;\\n    proxy_set_header Upgrade $http_upgrade;\\n    proxy_set_header Connection \"Upgrade\";\\n    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;\\n    proxy_pass http://127.0.0.1:8081;\\n}\\n\\n# .env\\nREVERB_HOST=0.0.0.0\\nREVERB_PORT=8081\\nVITE_REVERB_HOST=your-domain.com\\nVITE_REVERB_PORT=443",
+        "language": "nginx"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "reverb",
+        "nginx",
+        "websockets"
+      ],
+      "faqs": [
+        {
+          "question": "Why does Laravel Reverb work locally but fail behind Nginx in production?",
+          "answer": "Local environments often connect directly to the Reverb process or use a much simpler proxy chain. Production adds SSL termination, reverse proxies, header forwarding, and public-vs-internal host separation. If Nginx or an upstream proxy fails to preserve the WebSocket upgrade request, the handshake will fail even though Reverb is healthy. That is why production failures often come from infrastructure, not broadcasting code."
+        },
+        {
+          "question": "What HTTP status should I expect from a successful Reverb WebSocket handshake?",
+          "answer": "A successful WebSocket upgrade should return `101 Switching Protocols`. If you keep seeing 200, 400, 404, or 500 responses on the `/app` endpoint, the request is being handled incorrectly before the upgrade finishes. Checking for status 101 in browser devtools or proxy logs is one of the fastest ways to confirm your Nginx and Reverb configuration is finally correct."
+        }
+      ],
+      "difficulty": "intermediate"
+    },
+    {
+      "error_message": "Laravel Octane 502 After Deploy from Stale Workers",
+      "framework": "laravel",
+      "slug": "laravel-octane-502-bad-gateway-stale-workers-socket",
+      "root_cause": "This Octane deployment failure happens when Nginx still points at an old Octane socket or port, or when the new release goes live while old workers continue serving stale application state. Unlike PHP-FPM, Octane keeps the application in memory, so a deploy is not complete until workers are cleanly reloaded against the new code and the upstream endpoint remains stable. Symlink-based releases make this worse when Nginx, Supervisor, and Octane are not coordinated around a consistent socket path or port. The result is a 502 from Nginx even though both the web server and the app look superficially healthy from process status alone.",
+      "symptoms": [
+        "Users receive 502 Bad Gateway immediately after a deploy even though the site was healthy before the release",
+        "Some requests hit old code or stale configuration while others fail outright",
+        "Nginx logs show upstream connect or read errors for the Octane socket or port",
+        "Restarting Octane or Supervisor restores the site without code changes",
+        "The incident is more common with zero-downtime release directories or manual symlink switching"
+      ],
+      "fix_steps": [
+        "Keep the Nginx upstream endpoint stable across releases by using a fixed Unix socket or port rather than baking a release-specific path into the server config.",
+        "During deploys, run the Octane reload or restart sequence explicitly so new workers boot the new codebase instead of serving stale in-memory state.",
+        "Coordinate symlink switching, cache warmup, and process restarts so Nginx does not send traffic to workers that still reference the previous release path.",
+        "Verify Supervisor or systemd definitions use the same working directory and socket strategy as your deploy process, because mismatches create hard-to-reproduce 502 incidents.",
+        "Check Nginx error logs and Octane logs together to see whether the failure is an upstream connect problem, a stale worker problem, or a crash during worker boot.",
+        "After the release, make a smoke test request through Nginx and confirm the reported app version, health endpoint, and Octane process state all belong to the new release."
+      ],
+      "example_code": {
+        "before": "# nginx upstream\\nproxy_pass http://unix:/var/www/releases/2026-03-19/storage/octane.sock;\\n\\n# deploy script\\nln -sfn /var/www/releases/$RELEASE /var/www/current\\nphp artisan config:cache\\n# Octane workers not reloaded",
+        "after": "# nginx upstream\\nproxy_pass http://unix:/var/www/shared/octane.sock;\\n\\n# deploy script\\nln -sfn /var/www/releases/$RELEASE /var/www/current\\nphp artisan config:cache\\nphp artisan octane:reload || supervisorctl restart laravel-octane:*\\n\\n# Supervisor\\ndirectory=/var/www/current",
+        "language": "bash"
+      },
+      "related_topics": [
+        "laravel",
+        "production",
+        "debugging",
+        "devops-and-infrastructure",
+        "infrastructure",
+        "octane",
+        "nginx",
+        "swoole"
+      ],
+      "faqs": [
+        {
+          "question": "Why do Octane deploys need a reload step when PHP-FPM deploys often do not?",
+          "answer": "Because Octane keeps the Laravel application in memory between requests. A normal code deploy changes files on disk, but existing Octane workers can continue serving the previous in-memory container until they are reloaded. PHP-FPM starts each request from a fresh bootstrap, so it is less sensitive to stale in-memory state. That is why Octane deploy checklists must include an explicit worker reload or restart."
+        },
+        {
+          "question": "Should Nginx point to a release-specific Octane socket path?",
+          "answer": "Usually no. A release-specific socket path makes deploy coordination much harder because Nginx, Supervisor, and Octane all need to move in perfect lockstep. A stable shared socket or port is easier to reason about and avoids a class of 502 errors where Nginx tries to connect to a socket that belonged to a previous release. Keep the endpoint stable and rotate the workers behind it."
+        }
+      ],
+      "difficulty": "advanced"
+    }
+  ]
+}

@@ -1,3 +1,15 @@
+import { readFile } from "node:fs/promises";
+
+function toArrayBuffer(buffer: Buffer): ArrayBuffer {
+  return buffer.buffer.slice(
+    buffer.byteOffset,
+    buffer.byteOffset + buffer.byteLength
+  ) as ArrayBuffer;
+}
+
+let preferLocalFonts = false;
+let loggedLocalFallback = false;
+
 async function loadGoogleFont(
   font: string,
   text: string,
@@ -29,11 +41,43 @@ async function loadGoogleFont(
   return res.arrayBuffer();
 }
 
+async function loadLocalFont(path: string): Promise<ArrayBuffer> {
+  const data = await readFile(path);
+  return toArrayBuffer(data);
+}
+
+async function loadFallbackFonts(): Promise<
+  Array<{ name: string; data: ArrayBuffer; weight: number; style: string }>
+> {
+  return Promise.all([
+    loadLocalFont("/System/Library/Fonts/Supplemental/Verdana.ttf").then(
+      data => ({
+        name: "System Sans",
+        data,
+        weight: 400,
+        style: "normal",
+      })
+    ),
+    loadLocalFont("/System/Library/Fonts/Supplemental/Verdana Bold.ttf").then(
+      data => ({
+        name: "System Sans",
+        data,
+        weight: 700,
+        style: "bold",
+      })
+    ),
+  ]);
+}
+
 async function loadGoogleFonts(
   text: string
 ): Promise<
   Array<{ name: string; data: ArrayBuffer; weight: number; style: string }>
 > {
+  if (preferLocalFonts) {
+    return loadFallbackFonts();
+  }
+
   const fontsConfig = [
     {
       name: "IBM Plex Mono",
@@ -49,14 +93,27 @@ async function loadGoogleFonts(
     },
   ];
 
-  const fonts = await Promise.all(
-    fontsConfig.map(async ({ name, font, weight, style }) => {
-      const data = await loadGoogleFont(font, text, weight);
-      return { name, data, weight, style };
-    })
-  );
+  try {
+    const fonts = await Promise.all(
+      fontsConfig.map(async ({ name, font, weight, style }) => {
+        const data = await loadGoogleFont(font, text, weight);
+        return { name, data, weight, style };
+      })
+    );
 
-  return fonts;
+    return fonts;
+  } catch (error) {
+    preferLocalFonts = true;
+    if (!loggedLocalFallback) {
+      console.warn(
+        "Falling back to local system fonts for OG image generation:",
+        error
+      );
+      loggedLocalFallback = true;
+    }
+
+    return loadFallbackFonts();
+  }
 }
 
 export default loadGoogleFonts;

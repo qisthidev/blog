@@ -32,6 +32,7 @@ const hubSlug = getArg("hub");
 const newHub = getArg("new-hub");
 const hubTitle = getArg("hub-title");
 const hubTags = getArg("hub-tags");
+const hubDescription = getArg("hub-description");
 const batchFile = getArg("batch");
 const dryRun = args.includes("--dry-run");
 const noGenerate = args.includes("--no-generate");
@@ -86,22 +87,88 @@ function loadEnvFile(): void {
 
 loadEnvFile();
 
-const PROVIDER = process.env.PSEO_PROVIDER as
-  | "anthropic"
-  | "openai"
-  | "gemini"
-  | undefined;
-const API_KEY = process.env.PSEO_API_KEY;
+type Provider = "anthropic" | "openai" | "gemini";
+
+function isProvider(value: string | undefined): value is Provider {
+  return value === "anthropic" || value === "openai" || value === "gemini";
+}
+
+function detectProvider(): Provider | undefined {
+  if (isProvider(process.env.PSEO_PROVIDER)) {
+    return process.env.PSEO_PROVIDER;
+  }
+
+  if (
+    process.env.ANTHROPIC_API_KEY ||
+    process.env.ANTHROPIC_AUTH_TOKEN ||
+    process.env.ANTHROPIC_BASE_URL
+  ) {
+    return "anthropic";
+  }
+
+  if (process.env.OPENAI_API_KEY || process.env.OPENAI_BASE_URL) {
+    return "openai";
+  }
+
+  if (
+    process.env.GEMINI_API_KEY ||
+    process.env.GOOGLE_API_KEY ||
+    process.env.GEMINI_BASE_URL ||
+    process.env.GOOGLE_BASE_URL
+  ) {
+    return "gemini";
+  }
+
+  return undefined;
+}
+
+function resolveApiKey(provider: Provider): string | undefined {
+  if (process.env.PSEO_API_KEY) return process.env.PSEO_API_KEY;
+
+  switch (provider) {
+    case "anthropic":
+      return process.env.ANTHROPIC_API_KEY || process.env.ANTHROPIC_AUTH_TOKEN;
+    case "openai":
+      return process.env.OPENAI_API_KEY;
+    case "gemini":
+      return process.env.GEMINI_API_KEY || process.env.GOOGLE_API_KEY;
+  }
+}
+
+function resolveBaseUrl(provider: Provider): string | undefined {
+  if (process.env.PSEO_BASE_URL) return process.env.PSEO_BASE_URL;
+
+  switch (provider) {
+    case "anthropic":
+      return process.env.ANTHROPIC_BASE_URL;
+    case "openai":
+      return process.env.OPENAI_BASE_URL;
+    case "gemini":
+      return process.env.GEMINI_BASE_URL || process.env.GOOGLE_BASE_URL;
+  }
+}
+
+function buildApiUrl(base: string, relativePath: string): string {
+  const normalizedBase = base.endsWith("/") ? base : `${base}/`;
+  const normalizedPath = relativePath.replace(/^\/+/, "");
+  return new URL(normalizedPath, normalizedBase).toString();
+}
+
+const PROVIDER = detectProvider();
+const API_KEY = PROVIDER ? resolveApiKey(PROVIDER) : undefined;
+const BASE_URL = PROVIDER ? resolveBaseUrl(PROVIDER) : undefined;
 const MODEL_OVERRIDE = process.env.PSEO_MODEL;
 
-if (!PROVIDER || !["anthropic", "openai", "gemini"].includes(PROVIDER)) {
+if (!PROVIDER) {
   console.error(
-    "Error: PSEO_PROVIDER env var must be anthropic|openai|gemini"
+    "Error: set PSEO_PROVIDER=anthropic|openai|gemini or provide compatible provider env vars"
   );
   process.exit(1);
 }
 if (!API_KEY) {
-  console.error("Error: PSEO_API_KEY env var is required");
+  console.error(
+    "Error: missing API key. Set PSEO_API_KEY or a provider-specific key env var."
+  );
   process.exit(1);
 }
 
@@ -194,8 +261,8 @@ ${schema}
 4. **Code examples**: Must be realistic, production-quality code with inline comments. Before code shows the problem clearly. After code shows the complete fix. Use proper escaping for JSON strings (\\n for newlines, \\\\ for backslashes, \\" for quotes within strings).
 5. **FAQs**: Must have 2+ entries. Questions should be what developers actually search for. Answers must be 50+ words each.
 6. **slug**: Must be kebab-case and prefixed with the technology/framework name (e.g., "laravel-race-condition-cache-lock", "postgresql-slow-query-debugging").
-7. **related_topics / related_articles**: Must include these hub tags: ${JSON.stringify(hubTagsList)}
-${type === "performance" ? "8. **metrics**: Must have 4+ entries with realistic before/after measurements." : ""}
+7. **related_topics / related_articles**: Must include these hub tags: ${JSON.stringify(hubTagsList)} and add 2-4 specific surface tags when relevant (examples: nginx, php-fpm, redis, horizon, octane, reverb, supervisor, websockets).
+${type === "errors" ? '8. **error_message**: Must be a concrete failure-mode title matching how developers search for the issue. Avoid generic guide titles.' : "8. **metrics**: Must have 4+ entries with realistic before/after measurements."}
 
 ## Important
 
@@ -244,13 +311,15 @@ async function fetchWithRetry(
 }
 
 async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<string> {
+  const url = buildApiUrl(BASE_URL || "https://api.anthropic.com", "v1/messages");
   const res = await fetchWithRetry(
-    "https://api.anthropic.com/v1/messages",
+    url,
     {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
         "x-api-key": API_KEY!,
+        Authorization: `Bearer ${API_KEY!}`,
         "anthropic-version": "2023-06-01",
       },
       body: JSON.stringify({
@@ -270,8 +339,12 @@ async function callAnthropic(systemPrompt: string, userPrompt: string): Promise<
 }
 
 async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<string> {
+  const url = buildApiUrl(
+    BASE_URL || "https://api.openai.com",
+    "v1/chat/completions"
+  );
   const res = await fetchWithRetry(
-    "https://api.openai.com/v1/chat/completions",
+    url,
     {
       method: "POST",
       headers: {
@@ -295,7 +368,11 @@ async function callOpenAI(systemPrompt: string, userPrompt: string): Promise<str
 }
 
 async function callGemini(systemPrompt: string, userPrompt: string): Promise<string> {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${API_KEY}`;
+  const urlBase = buildApiUrl(
+    BASE_URL || "https://generativelanguage.googleapis.com",
+    `v1beta/models/${model}:generateContent`
+  );
+  const url = `${urlBase}?key=${API_KEY}`;
   const res = await fetchWithRetry(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -492,13 +569,16 @@ function createNewDataset(
   type: "errors" | "performance",
   hub: string,
   title: string,
-  tags: string[]
+  tags: string[],
+  description?: string
 ): PSEODataset<ErrorGuide | PerformanceGuide> {
   return {
     model: type,
     hub,
     hub_title: title,
-    hub_description: `Comprehensive guide covering ${title.toLowerCase()} — production-tested techniques, real code examples, and performance benchmarks.`,
+    hub_description:
+      description ||
+      `Comprehensive guide covering ${title.toLowerCase()} — production-tested techniques, real code examples, and performance benchmarks.`,
     hub_tags: tags,
     entries: [],
   };
@@ -535,25 +615,25 @@ function appendEntry(
 // Pipeline execution
 // ---------------------------------------------------------------------------
 function runPipeline(): void {
-  console.log("\nRunning generate-pseo.ts...");
+  console.log("\nRunning generate:pseo...");
   try {
-    execSync("npx tsx scripts/generate-pseo.ts --model all", {
+    execSync("pnpm generate:pseo", {
       stdio: "inherit",
       cwd: path.resolve("."),
     });
   } catch {
-    console.error("generate-pseo.ts failed");
+    console.error("generate:pseo failed");
     process.exit(1);
   }
 
-  console.log("\nRunning validate-pseo.ts...");
+  console.log("\nRunning validate:pseo...");
   try {
-    execSync("npx tsx scripts/validate-pseo.ts", {
+    execSync("pnpm validate:pseo", {
       stdio: "inherit",
       cwd: path.resolve("."),
     });
   } catch {
-    console.error("validate-pseo.ts failed (see errors above)");
+    console.error("validate:pseo failed (see errors above)");
     process.exit(1);
   }
 }
@@ -649,7 +729,8 @@ async function main(): Promise<void> {
         modelType!,
         newHub,
         hubTitle!,
-        hubTagsList
+        hubTagsList,
+        hubDescription
       );
       fs.writeFileSync(
         datasetPath,

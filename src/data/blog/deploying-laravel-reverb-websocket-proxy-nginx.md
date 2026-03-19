@@ -23,6 +23,8 @@ faqs:
 
 When building real-time features for production Laravel applications, deploying Laravel Reverb as your WebSocket server is the native choice. However, configuring the reverse proxy—especially in complex network topologies with multiple Nginx layers—is a common stumbling block that breaks the WebSocket handshake.
 
+> If you are not doing a full Reverb deployment and just need the failure-led debugging path, jump to [Laravel Reverb WebSocket Handshake Failed Behind Nginx](/blog/laravel-infrastructure-troubleshooting/laravel-reverb-websocket-handshake-failed-nginx-proxy). For adjacent production failures across Nginx, Redis, Horizon, PHP-FPM, and Octane, browse the [Laravel Infrastructure Troubleshooting Guide](/blog/laravel-infrastructure-troubleshooting/laravel-infrastructure-troubleshooting-guide).
+
 This tutorial walks through the exact setup needed to deploy Laravel Reverb in production, covering both standard single-server deployments and the separate proxy architecture.
 
 ## Architecture Overview

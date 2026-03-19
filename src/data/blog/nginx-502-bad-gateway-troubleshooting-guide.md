@@ -21,6 +21,8 @@ I took a deep breath, cracked my knuckles, and whispered to my empty apartment, 
 
 And now, my fellow developer, my battle-scarred comrade, I’m here to share the map I drew on my way out of that particular digital hell. This isn't just a technical guide. This is a survival story. We're going to dive deep into the belly of the beast that is the **nginx 502 bad gateway** error, and while we're there, we'll tackle some of its equally obnoxious cousins, like the `nginx 404 not found` and the infuriatingly vague `nginx 400 bad request request header or cookie too large`. Grab your strongest coffee (or something stronger, no judgment here), and let’s get this server sorted.
 
+> If you want the Laravel-specific follow-up guides, start with the [Laravel Infrastructure Troubleshooting Guide](/blog/laravel-infrastructure-troubleshooting/laravel-infrastructure-troubleshooting-guide). The most relevant deep dives from this article are [Nginx 504 Gateway Timeout with Laravel PHP-FPM](/blog/laravel-infrastructure-troubleshooting/laravel-nginx-504-gateway-timeout-php-fpm), [Laravel PHP-FPM Unix Socket File Missing](/blog/laravel-infrastructure-troubleshooting/laravel-php-fpm-unix-socket-no-such-file-or-directory), and [Nginx Too Big Header with Laravel Sessions and Cookies](/blog/laravel-infrastructure-troubleshooting/laravel-nginx-upstream-sent-too-big-header-sessions-cookies).
+
 ## What in the Digital Heck is a 502 Bad Gateway Error Anyway? 🤔
 
 Before we start ripping apart our server configs like a wild animal, let’s get one thing straight. What _is_ this error? I like to think of Nginx as the world’s most efficient, but slightly aloof, bouncer at a very exclusive nightclub.
